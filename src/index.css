@@ -1,0 +1,393 @@
+@import "tailwindcss";
+
+/* Logicraft is dark-only by design. */
+:root {
+  --color-bg: #08090b;
+  --color-surface: #111318;
+  --color-surface-elevated: #181b21;
+  --color-border: #22262e;
+  --color-border-strong: #2e333d;
+
+  --color-text-primary: #f4f6f8;
+  --color-text-secondary: #9aa3af;
+  --color-text-muted: #666e7a;
+
+  --color-accent: #7bf542;
+  --color-accent-strong: #5fd928;
+  --color-accent-soft: rgba(123, 245, 66, 0.12);
+
+  --color-violet: #a78bfa;
+  --color-violet-strong: #8b5cf6;
+  --color-violet-soft: rgba(167, 139, 250, 0.12);
+
+  --color-info: #4da3ff;
+  --color-warning: #f5a623;
+  --color-error: #ff5c5c;
+  --color-success: #3dd68c;
+
+  --font-ui: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", monospace;
+  --font-pixel: "Pixelify Sans", "JetBrains Mono", monospace;
+
+  --pixel-ink: #0b0d12;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-xl: 22px;
+
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px -8px rgba(0, 0, 0, 0.5);
+  --shadow-glow-accent: 0 0 0 1px rgba(123, 245, 66, 0.25), 0 0 24px -4px rgba(123, 245, 66, 0.35);
+  --shadow-glow-violet: 0 0 0 1px rgba(167, 139, 250, 0.25), 0 0 24px -4px rgba(167, 139, 250, 0.35);
+
+  color-scheme: dark;
+}
+
+@theme {
+  --color-bg: var(--color-bg);
+  --color-surface: var(--color-surface);
+  --color-surface-elevated: var(--color-surface-elevated);
+  --color-border: var(--color-border);
+  --color-border-strong: var(--color-border-strong);
+
+  --color-text-primary: var(--color-text-primary);
+  --color-text-secondary: var(--color-text-secondary);
+  --color-text-muted: var(--color-text-muted);
+
+  --color-accent: var(--color-accent);
+  --color-accent-strong: var(--color-accent-strong);
+  --color-accent-soft: var(--color-accent-soft);
+
+  --color-violet: var(--color-violet);
+  --color-violet-strong: var(--color-violet-strong);
+  --color-violet-soft: var(--color-violet-soft);
+
+  --color-info: var(--color-info);
+  --color-warning: var(--color-warning);
+  --color-error: var(--color-error);
+  --color-success: var(--color-success);
+
+  --font-sans: var(--font-ui);
+  --font-mono: var(--font-mono);
+  --font-pixel: var(--font-pixel);
+
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-xl: var(--radius-xl);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  html {
+    font-family: var(--font-ui);
+  }
+
+  body {
+    background-color: var(--color-bg);
+    color: var(--color-text-primary);
+    min-height: 100dvh;
+  }
+
+  /* Game-UI type: headings and table headers are pixel; long-form text stays in Inter for readability. */
+  h1,
+  h2,
+  h3,
+  h4,
+  th,
+  legend {
+    font-family: var(--font-pixel);
+    font-weight: 600;
+    letter-spacing: 0.01em;
+  }
+
+  /* Resume paper is a real document, not game UI: headings use the template's own font. */
+  .resume-paper :is(h1, h2, h3, h4) {
+    font-family: inherit;
+    letter-spacing: normal;
+  }
+
+  ::selection {
+    background: var(--color-accent-soft);
+    color: var(--color-accent);
+  }
+
+  /* ---------- 8-bit scrollbars ----------
+     Chromium ignores ::-webkit-scrollbar once scrollbar-color/width is set, so the standard
+     properties are applied only where ::-webkit-scrollbar is unsupported (Firefox). */
+  ::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+  }
+  ::-webkit-scrollbar-track {
+    background: var(--pixel-ink);
+    box-shadow: inset 2px 0 0 #151821;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-border-strong);
+    border: 2px solid var(--pixel-ink);
+    border-radius: 0;
+    box-shadow:
+      inset 2px 2px 0 rgba(255, 255, 255, 0.1),
+      inset -2px -2px 0 rgba(0, 0, 0, 0.35);
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #3c8c18;
+  }
+  ::-webkit-scrollbar-thumb:active {
+    background: var(--color-accent);
+  }
+  ::-webkit-scrollbar-corner {
+    background: var(--pixel-ink);
+  }
+  ::-webkit-scrollbar-button {
+    display: none;
+    width: 0;
+    height: 0;
+  }
+
+  @supports not selector(::-webkit-scrollbar) {
+    * {
+      scrollbar-width: thin;
+      scrollbar-color: var(--color-border-strong) var(--pixel-ink);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer utilities {
+  /* Soft top/bottom fade for scrolling lists; sized to the list's py-2 so nothing fades at rest. */
+  .nav-fade {
+    -webkit-mask-image: linear-gradient(to bottom, transparent, #000 8px, #000 calc(100% - 8px), transparent);
+    mask-image: linear-gradient(to bottom, transparent, #000 8px, #000 calc(100% - 8px), transparent);
+  }
+
+  /* Slimmer variant for scroll areas inside panels: track blends into the panel. */
+  .pixel-scroll::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  .pixel-scroll::-webkit-scrollbar-track {
+    background: transparent;
+    box-shadow: none;
+  }
+  .pixel-scroll::-webkit-scrollbar-thumb {
+    border-width: 1px;
+    border-color: transparent;
+    background-clip: padding-box;
+    box-shadow: none;
+  }
+  .pixel-scroll::-webkit-scrollbar-thumb:hover {
+    background-color: #3c8c18;
+  }
+
+  .text-gradient-accent {
+    background: linear-gradient(90deg, var(--color-accent), var(--color-violet));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .bg-grid-pattern {
+    background-image: linear-gradient(var(--color-border) 1px, transparent 1px),
+      linear-gradient(90deg, var(--color-border) 1px, transparent 1px);
+    background-size: 44px 44px;
+    -webkit-mask-image: radial-gradient(ellipse 60% 50% at 50% 0%, black 40%, transparent 85%);
+    mask-image: radial-gradient(ellipse 60% 50% at 50% 0%, black 40%, transparent 85%);
+  }
+
+  @keyframes shimmer-sweep {
+    0% {
+      background-position: -200% 0;
+    }
+    100% {
+      background-position: 200% 0;
+    }
+  }
+
+  .animate-shimmer {
+    background-image: linear-gradient(110deg, transparent 35%, rgba(255, 255, 255, 0.35) 50%, transparent 65%);
+    background-size: 220% 100%;
+    animation: shimmer-sweep 2.8s ease-in-out infinite;
+  }
+
+  @keyframes float-y {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-10px);
+    }
+  }
+
+  .animate-float {
+    animation: float-y 4s ease-in-out infinite;
+  }
+
+  /* ---------- Pixel art layer ---------- */
+
+  .font-pixel {
+    font-family: var(--font-pixel);
+    letter-spacing: 0.01em;
+  }
+
+  .pixelated {
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+  }
+
+  /* Stepped 8-bit corners: a 4px notch carved out of each corner. */
+  .pixel-corners {
+    clip-path: polygon(
+      0 4px, 4px 4px, 4px 0,
+      calc(100% - 4px) 0, calc(100% - 4px) 4px, 100% 4px,
+      100% calc(100% - 4px), calc(100% - 4px) calc(100% - 4px), calc(100% - 4px) 100%,
+      4px 100%, 4px calc(100% - 4px), 0 calc(100% - 4px)
+    );
+  }
+
+  /* Chunky 8-bit button: hard drop shadow that collapses on press. */
+  .pixel-btn {
+    position: relative;
+    border-radius: 0;
+    box-shadow:
+      inset -4px -4px 0 0 rgba(0, 0, 0, 0.28),
+      inset 4px 4px 0 0 rgba(255, 255, 255, 0.28),
+      0 4px 0 0 var(--pixel-ink);
+    transition: transform 80ms steps(2), box-shadow 80ms steps(2);
+  }
+  .pixel-btn:hover {
+    transform: translateY(-2px);
+    box-shadow:
+      inset -4px -4px 0 0 rgba(0, 0, 0, 0.28),
+      inset 4px 4px 0 0 rgba(255, 255, 255, 0.28),
+      0 6px 0 0 var(--pixel-ink);
+  }
+  .pixel-btn:active {
+    transform: translateY(4px);
+    box-shadow:
+      inset 4px 4px 0 0 rgba(0, 0, 0, 0.28),
+      0 0 0 0 var(--pixel-ink);
+  }
+
+  .pixel-btn:disabled {
+    transform: none;
+    box-shadow: 0 0 0 2px var(--color-border-strong);
+  }
+
+  /* 2px "sprite outline" frame for cards that should feel like game UI. */
+  .pixel-frame {
+    border-radius: 0;
+    box-shadow:
+      0 0 0 2px var(--color-border-strong),
+      4px 4px 0 0 var(--pixel-ink);
+  }
+
+  .pixel-scanlines {
+    background-image: repeating-linear-gradient(
+      to bottom,
+      rgba(255, 255, 255, 0.035) 0,
+      rgba(255, 255, 255, 0.035) 1px,
+      transparent 1px,
+      transparent 3px
+    );
+  }
+
+  @keyframes pixel-bob {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+  }
+  .animate-pixel-bob {
+    animation: pixel-bob 1.2s steps(2, jump-none) infinite;
+  }
+
+  @keyframes pixel-hover {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+  }
+  .animate-pixel-hover {
+    animation: pixel-hover 2.4s steps(4, jump-none) infinite;
+  }
+
+  @keyframes pixel-twinkle {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.25; }
+  }
+  .animate-pixel-twinkle {
+    animation: pixel-twinkle 1.6s steps(2, jump-none) infinite;
+  }
+
+  @keyframes pixel-shake {
+    0%, 100% { transform: translate(0, 0); }
+    25% { transform: translate(-3px, 0); }
+    50% { transform: translate(3px, -2px); }
+    75% { transform: translate(-2px, 1px); }
+  }
+  .animate-pixel-shake {
+    animation: pixel-shake 0.32s steps(4) infinite;
+  }
+
+  @keyframes gear-spin {
+    to { transform: rotate(360deg); }
+  }
+  .animate-gear-spin {
+    animation: gear-spin 1.2s steps(8) infinite;
+  }
+
+  @keyframes ticker-scroll {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+  }
+  .animate-ticker {
+    animation: ticker-scroll 45s linear infinite;
+  }
+  .animate-ticker:hover {
+    animation-play-state: paused;
+  }
+
+  @keyframes pixel-blink-caret {
+    0%, 49% { opacity: 1; }
+    50%, 100% { opacity: 0; }
+  }
+  .animate-caret {
+    animation: pixel-blink-caret 1s steps(1) infinite;
+  }
+}
+
+/* ---------- Resume printing ----------
+   The Resume Builder portals a print copy under <body>; printing shows only that copy. */
+.resume-print-portal {
+  display: none;
+}
+
+@media print {
+  @page {
+    size: A4;
+    margin: 0;
+  }
+  html,
+  body {
+    background: #fff !important;
+    min-height: 0 !important;
+  }
+  #root {
+    display: none !important;
+  }
+  .resume-print-portal {
+    display: block !important;
+  }
+}
