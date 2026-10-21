@@ -15,24 +15,41 @@ import { PixelSprite } from '@/components/pixel/PixelSprite'
 import { useWalletStore } from '@/stores/walletStore'
 import { Avatar } from '@/components/ui/Avatar'
 import { cn } from '@/utils/cn'
+import { pickActiveCourse } from '@/utils/courses'
+import { PathSprite } from '@/components/learning/PathCard'
 
 export default function Dashboard() {
   const { data: user } = useQuery({ queryKey: ['current-user'], queryFn: api.getCurrentUser })
   const lifetimeXp = useWalletStore((s) => s.lifetimeXp)
   const { data: quest } = useQuery({ queryKey: ['daily-quest'], queryFn: api.getDailyQuest })
   const { data: courses } = useQuery({ queryKey: ['courses'], queryFn: api.getCourses })
+  const { data: paths } = useQuery({ queryKey: ['paths'], queryFn: api.getPaths })
   const { data: leaderboard } = useQuery({ queryKey: ['leaderboard', 'global'], queryFn: () => api.getLeaderboard('global') })
+
+  const activeCourse = courses ? pickActiveCourse(courses) : undefined
+  const { data: activePath } = useQuery({
+    queryKey: ['course-path', activeCourse?.id],
+    queryFn: () => api.getCoursePath(activeCourse?.id ?? ''),
+    enabled: Boolean(activeCourse),
+  })
 
   if (!user || !quest || !courses || !leaderboard) return <PageLoader />
 
-  const activeCourse = courses[0]
+  // Resume at the topic the map says is next; a finished course revisits its last topic.
+  const topics = (activePath ?? []).flatMap((zone) => zone.nodes)
+  const nextTopic = topics.find((n) => n.state === 'current') ?? topics[topics.length - 1]
+  const courseHref = activeCourse ? (nextTopic ? `/learn/${activeCourse.id}/${nextTopic.lessonId}` : `/learn/${activeCourse.id}`) : '/learn'
+  // The path to show: one the player follows, else the best suggestion.
+  const careerPath = paths?.find((p) => p.enrolled && p.progressPercent < 100) ?? paths?.find((p) => p.recommended)
+  const hour = new Date().getHours()
+  const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening'
   const topFive = leaderboard.slice(0, 5)
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Good morning, {user.username} 👋</h1>
+          <h1 className="text-2xl font-bold">{greeting}, {user.username} 👋</h1>
           <p className="mt-1 text-sm text-[var(--color-text-secondary)]">Here's where your quest stands today.</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
@@ -74,7 +91,7 @@ export default function Dashboard() {
             <XPBar xp={lifetimeXp} xpToNextLevel={user.xpToNextLevel} />
             <p className="text-xs text-[var(--color-text-secondary)]">
               <span className="font-pixel text-[var(--color-accent)]">{Math.max(0, user.xpToNextLevel - lifetimeXp).toLocaleString()} XP</span> to Level{' '}
-              {user.level + 1} — about two quests away.
+              {user.level + 1}.
             </p>
           </CardContent>
         </div>
@@ -86,29 +103,84 @@ export default function Dashboard() {
 
           <Card className="mt-6">
             <CardHeader>
-              <CardTitle>Continue Learning</CardTitle>
-              <Link to={`/learn/${activeCourse.id}`} className="text-sm font-medium text-[var(--color-accent)] hover:underline">
-                View course
+              <CardTitle>{activeCourse && activeCourse.progressPercent > 0 ? 'Continue Learning' : 'Start Learning'}</CardTitle>
+              <Link to={activeCourse ? `/learn/${activeCourse.id}` : '/learn'} className="text-sm font-medium text-[var(--color-accent)] hover:underline">
+                {activeCourse ? 'View course' : 'Browse courses'}
               </Link>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-semibold">{activeCourse.title}</p>
-                  <p className="text-sm text-[var(--color-text-secondary)]">{activeCourse.world}</p>
-                </div>
-                <span className="font-mono text-sm text-[var(--color-accent)]">{activeCourse.progressPercent}%</span>
-              </div>
-              <ProgressBar percent={activeCourse.progressPercent} className="mt-3" />
-              <Link
-                to={`/learn/${activeCourse.id}`}
-                className={cn(buttonVariants({ variant: 'secondary' }), 'mt-4 w-full sm:w-auto')}
-              >
-                Continue Learning
-                <ArrowRight className="h-4 w-4" />
-              </Link>
+              {activeCourse ? (
+                <>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-semibold">{activeCourse.title}</p>
+                      <p className="text-sm text-[var(--color-text-secondary)]">{activeCourse.world}</p>
+                    </div>
+                    <span className="font-mono text-sm text-[var(--color-accent)]">{activeCourse.progressPercent}%</span>
+                  </div>
+                  <ProgressBar percent={activeCourse.progressPercent} className="mt-3" />
+                  {nextTopic && (
+                    <p className="mt-3 text-sm text-[var(--color-text-secondary)]">
+                      {nextTopic.state === 'current' ? 'Up next' : 'Last topic'}: <span className="text-[var(--color-text-primary)]">{nextTopic.title}</span>
+                    </p>
+                  )}
+                  <Link to={courseHref} className={cn(buttonVariants({ variant: 'secondary' }), 'mt-4 w-full sm:w-auto')}>
+                    {activeCourse.progressPercent > 0 ? 'Continue Learning' : 'Start Learning'}
+                    <ArrowRight className="h-4 w-4" />
+                  </Link>
+                </>
+              ) : (
+                <p className="text-sm text-[var(--color-text-secondary)]">
+                  Courses couldn't be loaded right now. Check back in a minute, or head to the <Link to="/learn" className="text-[var(--color-accent)] hover:underline">Learn page</Link>.
+                </p>
+              )}
             </CardContent>
           </Card>
+
+          {paths && paths.length > 0 && (
+            <Card className="mt-6">
+              <CardHeader>
+                <CardTitle>{careerPath ? (careerPath.enrolled ? 'Your career path' : 'Suggested career path') : 'Career paths'}</CardTitle>
+                <Link to="/paths" className="text-sm font-medium text-[var(--color-accent)] hover:underline">
+                  All paths
+                </Link>
+              </CardHeader>
+              <CardContent>
+                {careerPath ? (
+                  <>
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="font-semibold">{careerPath.title}</p>
+                        <p className="text-sm text-[var(--color-text-secondary)]">{careerPath.reason ?? careerPath.tagline}</p>
+                      </div>
+                      <PathSprite name={careerPath.sprite} scale={3} />
+                    </div>
+                    <div className="mt-3 flex items-center justify-between text-xs">
+                      <span className="text-[var(--color-text-muted)]">
+                        {careerPath.completedSteps} of {careerPath.totalSteps} courses done
+                      </span>
+                      <span className="font-mono text-[var(--color-accent)]">{careerPath.progressPercent}%</span>
+                    </div>
+                    <ProgressBar percent={careerPath.progressPercent} className="mt-1.5" />
+                    <Link to={`/paths/${careerPath.id}`} className={cn(buttonVariants({ variant: 'secondary' }), 'mt-4 w-full sm:w-auto')}>
+                      Open path
+                      <ArrowRight className="h-4 w-4" />
+                    </Link>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-sm text-[var(--color-text-secondary)]">
+                      Pick an industry route (full-stack, AI, data and more) and follow it course by course.
+                    </p>
+                    <Link to="/paths" className={cn(buttonVariants({ variant: 'secondary' }), 'mt-4 w-full sm:w-auto')}>
+                      Explore career paths
+                      <ArrowRight className="h-4 w-4" />
+                    </Link>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         <div className="space-y-6">

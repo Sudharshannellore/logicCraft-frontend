@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react'
-import { createBrowserRouter, RouterProvider } from 'react-router-dom'
+import { createBrowserRouter, Navigate, RouterProvider, useParams } from 'react-router-dom'
 import { AppShell } from '@/components/layout/AppShell'
 import { FocusShell } from '@/components/layout/FocusShell'
 import { PageLoader } from '@/components/layout/PageLoader'
@@ -11,11 +11,14 @@ const Dashboard = lazy(() => import('@/pages/Dashboard'))
 const Learn = lazy(() => import('@/pages/Learn'))
 const CoursePage = lazy(() => import('@/pages/Learn/CoursePage'))
 const LessonPage = lazy(() => import('@/pages/Learn/LessonPage'))
+const Paths = lazy(() => import('@/pages/Paths'))
+const PathPage = lazy(() => import('@/pages/Paths/PathPage'))
 const Practice = lazy(() => import('@/pages/Practice'))
 const CodeWorkspace = lazy(() => import('@/pages/Code'))
 const SQLSandbox = lazy(() => import('@/pages/SQL'))
 const SqlProblemPage = lazy(() => import('@/pages/Practice/SqlProblemPage'))
 const ExercisePage = lazy(() => import('@/pages/Practice/ExercisePage'))
+const QuizPage = lazy(() => import('@/pages/Quiz'))
 const Challenges = lazy(() => import('@/pages/Challenges'))
 const ChallengePage = lazy(() => import('@/pages/Challenges/ChallengePage'))
 const Leaderboard = lazy(() => import('@/pages/Leaderboard'))
@@ -30,6 +33,12 @@ const Friends = lazy(() => import('@/pages/Friends'))
 const NotFound = lazy(() => import('@/pages/NotFound'))
 const SignIn = lazy(() => import('@/pages/Auth/SignIn'))
 const SignUp = lazy(() => import('@/pages/Auth/SignUp'))
+/** A language course's boss is an exercise fight; a framework course's boss is a quiz on its docs. */
+function BossRoute() {
+  const { courseId = '', bossId = '' } = useParams()
+  return courseId.startsWith('fw-') ? <Navigate to={`/quiz/fwq-zone-${bossId}`} replace /> : withSuspense(<ChallengePage />)
+}
+
 function withSuspense(node: React.ReactNode) {
   return <Suspense fallback={<PageLoader />}>{node}</Suspense>
 }
@@ -51,6 +60,8 @@ export const router = createBrowserRouter([
       { path: '/learn', element: withSuspense(<Learn />) },
       { path: '/learn/:courseId', element: withSuspense(<CoursePage />) },
       { path: '/learn/:courseId/:lessonId', element: withSuspense(<LessonPage />) },
+      { path: '/paths', element: withSuspense(<Paths />) },
+      { path: '/paths/:pathId', element: withSuspense(<PathPage />) },
       { path: '/practice', element: withSuspense(<Practice />) },
       { path: '/challenges', element: withSuspense(<Challenges />) },
       { path: '/friends', element: withSuspense(<Friends />) },
@@ -76,7 +87,8 @@ export const router = createBrowserRouter([
       { path: '/practice/sql/:sqlProblemId', element: withSuspense(<SqlProblemPage />) },
       { path: '/practice/exercism/:language/:slug', element: withSuspense(<ExercisePage />) },
       { path: '/challenges/:challengeId', element: withSuspense(<ChallengePage />) },
-      { path: '/learn/:courseId/boss/:bossId', element: withSuspense(<ChallengePage />) },
+      { path: '/learn/:courseId/boss/:bossId', element: <BossRoute /> },
+      { path: '/quiz/:quizId', element: withSuspense(<QuizPage />) },
       { path: '/practice/:problemId', element: withSuspense(<CodeWorkspace />) },
       { path: '/code', element: withSuspense(<CodeWorkspace />) },
       { path: '/sql', element: withSuspense(<SQLSandbox />) },

@@ -63,7 +63,7 @@ const features: { sprite: SpriteName; title: string; description: string; tint: 
 ]
 
 const steps: { sprite: SpriteName; title: string; text: string }[] = [
-  { sprite: 'book', title: 'Learn a concept', text: 'Short lessons with diagrams, runnable code, and a quick quiz.' },
+  { sprite: 'book', title: 'Learn a concept', text: 'Open-source lessons loaded live, each with a graded exercise.' },
   { sprite: 'sword', title: 'Practice it', text: 'Solve real problems in Monaco with instant tests and AI review.' },
   { sprite: 'trophy', title: 'Compete with it', text: 'Climb leagues, beat Boss Battles, and track XP against friends.' },
 ]

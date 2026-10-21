@@ -9,6 +9,9 @@ import { Button, buttonVariants } from '@/components/ui/Button'
 import { PageLoader } from '@/components/layout/PageLoader'
 import { PixelSprite } from '@/components/pixel/PixelSprite'
 import { LanguagePicker } from '@/components/learning/LanguagePicker'
+import { FrameworkPicker } from '@/components/learning/FrameworkPicker'
+import { ModeTabs, type Mode } from '@/components/learning/ModeTabs'
+import { FrameworkChallenges } from './FrameworkChallenges'
 import { FriendDuels } from '@/components/duels/FriendDuels'
 import type { LiveChallenge } from '@/types'
 import { cn } from '@/utils/cn'
@@ -165,6 +168,7 @@ export default function Challenges() {
   const { data: languages } = useQuery({ queryKey: ['library', 'languages'], queryFn: api.getLibraryLanguages, staleTime: 10 * 60_000 })
   const [params, setParams] = useSearchParams()
   const selected = params.get('lang') ?? 'python'
+  const mode: Mode = params.get('mode') === 'frameworks' ? 'frameworks' : 'languages'
 
   if (!languages) return <PageLoader />
 
@@ -187,8 +191,17 @@ export default function Challenges() {
       <FriendDuels />
 
       <h2 className="mb-4 text-xl">Solo challenges</h2>
-      <LanguagePicker languages={languages} value={selected} onChange={(id) => setParams({ lang: id }, { replace: true })} />
-      <Board key={selected} language={selected} />
+      <ModeTabs value={mode} onChange={(m) => setParams(m === 'frameworks' ? { mode: 'frameworks' } : {}, { replace: true })} />
+      {mode === 'frameworks' ? (
+        <FrameworkPicker value={params.get('fw')} onChange={(id) => setParams({ mode: 'frameworks', fw: id }, { replace: true })}>
+          {(framework) => <FrameworkChallenges key={framework.courseId} framework={framework} />}
+        </FrameworkPicker>
+      ) : (
+        <>
+          <LanguagePicker languages={languages} value={selected} onChange={(id) => setParams({ lang: id }, { replace: true })} />
+          <Board key={selected} language={selected} />
+        </>
+      )}
     </div>
   )
 }

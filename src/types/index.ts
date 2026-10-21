@@ -75,6 +75,8 @@ export interface Course {
   progressPercent: number
   totalXp: number
   modules: CourseModule[]
+  /** "language" (Exercism-based) or "framework" (built from a framework's open-source docs). */
+  kind?: 'language' | 'framework'
 }
 
 export type NodeState = 'completed' | 'current' | 'locked'
@@ -122,22 +124,14 @@ export interface Lesson {
   concept: string
   explanation: string
   codeExample: string
-  quiz: { question: string; options: string[]; correctIndex: number; explanation?: string }
   xp?: number
   estimatedMinutes?: number
-  keyPoints?: string[]
-  analogy?: string
-  /** One note per notable line of `codeExample`, in order. */
-  codeWalkthrough?: string[]
-  tryIt?: {
-    prompt: string
-    starterCode: string
-    /** Mock grader: every regex (source string) must match the learner's code. */
-    checks: { pattern: string; hint: string }[]
-    expectedOutput: string
-  }
-  /** "curated" (written by the team) or "generated" (assembled from external references). */
-  source?: string
+  /** Teaching text pulled live from an open-source syllabus (Markdown), and where it came from. */
+  liveContent?: string | null
+  liveSourceName?: string | null
+  liveSourceUrl?: string | null
+  /** The graded exercise a live lesson ends with; solve it on the practice exercise page. */
+  exercise?: { language: string; slug: string; name: string; url: string; gradable: boolean } | null
   completed?: boolean
 }
 

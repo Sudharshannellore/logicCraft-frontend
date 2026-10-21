@@ -15,6 +15,7 @@ import { cn } from '@/utils/cn'
 export const navItems: { to: string; label: string; sprite: SpriteName }[] = [
   { to: '/dashboard', label: 'Dashboard', sprite: 'castle' },
   { to: '/learn', label: 'Learn', sprite: 'treasureMap' },
+  { to: '/paths', label: 'Career Paths', sprite: 'compass' },
   { to: '/practice', label: 'Practice', sprite: 'terminal' },
   { to: '/challenges', label: 'Challenges', sprite: 'sword' },
   { to: '/friends', label: 'Friends', sprite: 'hero' },

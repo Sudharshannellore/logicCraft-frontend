@@ -9,6 +9,9 @@ import { PageLoader } from '@/components/layout/PageLoader'
 import { PixelSprite } from '@/components/pixel/PixelSprite'
 import { PixelBackdrop } from '@/components/pixel/PixelBackdrop'
 import { LanguagePicker } from '@/components/learning/LanguagePicker'
+import { FrameworkPicker } from '@/components/learning/FrameworkPicker'
+import { ModeTabs, type Mode } from '@/components/learning/ModeTabs'
+import { FrameworkPractice } from './FrameworkPractice'
 import type { Difficulty, LibraryLanguage } from '@/types'
 import { cn } from '@/utils/cn'
 import { monsters } from './monsters'
@@ -272,6 +275,7 @@ export default function Practice() {
   const { data: languages } = useQuery({ queryKey: ['library', 'languages'], queryFn: api.getLibraryLanguages, staleTime: 10 * 60_000 })
   const [params, setParams] = useSearchParams()
   const selected = params.get('lang') ?? 'python'
+  const mode: Mode = params.get('mode') === 'frameworks' ? 'frameworks' : 'languages'
 
   if (!languages) return <PageLoader />
   const language = languages.find((l) => l.id === selected) ?? languages[0]
@@ -299,18 +303,28 @@ export default function Practice() {
           </Link>
         </div>
 
-        <LanguagePicker languages={languages} value={language.id} onChange={(id) => setParams({ lang: id }, { replace: true })} />
-        <p className="-mt-3 mb-6 flex items-center gap-4 text-xs text-[var(--color-text-muted)]">
-          <span className="flex items-center gap-1.5">
-            <span className="h-2 w-2 bg-[var(--color-success)]" /> Tests run here
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="h-2 w-2 bg-[var(--color-text-muted)]" /> Tests run on Exercism
-          </span>
-        </p>
+        <ModeTabs value={mode} onChange={(m) => setParams(m === 'frameworks' ? { mode: 'frameworks' } : {}, { replace: true })} />
 
-        <Originals language={language.id} />
-        <Library key={language.id} language={language} />
+        {mode === 'frameworks' ? (
+          <FrameworkPicker value={params.get('fw')} onChange={(id) => setParams({ mode: 'frameworks', fw: id }, { replace: true })}>
+            {(framework) => <FrameworkPractice key={framework.courseId} framework={framework} />}
+          </FrameworkPicker>
+        ) : (
+          <>
+            <LanguagePicker languages={languages} value={language.id} onChange={(id) => setParams({ lang: id }, { replace: true })} />
+            <p className="-mt-3 mb-6 flex items-center gap-4 text-xs text-[var(--color-text-muted)]">
+              <span className="flex items-center gap-1.5">
+                <span className="h-2 w-2 bg-[var(--color-success)]" /> Tests run here
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="h-2 w-2 bg-[var(--color-text-muted)]" /> Tests run on Exercism
+              </span>
+            </p>
+
+            <Originals language={language.id} />
+            <Library key={language.id} language={language} />
+          </>
+        )}
       </div>
     </>
   )

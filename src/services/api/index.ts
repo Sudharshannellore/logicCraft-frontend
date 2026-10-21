@@ -5,6 +5,12 @@ import type {
   AIMessage,
   AuthResponse,
   Billing,
+  CareerPathDetail,
+  FrameworkQuiz,
+  FrameworkSummary,
+  PracticeTopic,
+  QuizResult,
+  CareerPathSummary,
   ChallengeSubmitResult,
   Course,
   DailyQuest,
@@ -45,7 +51,6 @@ import type {
   SubmissionResult,
   SubscriptionState,
   TailorResult,
-  TryItResult,
   UserProfile,
   UserSettings,
   Wallet,
@@ -88,8 +93,23 @@ export const api = {
   getCoursePath: (courseId: string) => http.get<PathZone[]>(`/courses/${encodeURIComponent(courseId)}/path`),
   getLesson: (lessonId: string) => orNull(http.get<Lesson>(`/lessons/${encodeURIComponent(lessonId)}`)),
   getLessonResources: (lessonId: string) => http.get<LessonResources>(`/lessons/${encodeURIComponent(lessonId)}/resources`),
-  checkTryIt: (lessonId: string, code: string) => http.post<TryItResult>(`/lessons/${encodeURIComponent(lessonId)}/try-it`, { code }),
   completeLesson: (lessonId: string) => http.post<LessonCompletion>(`/lessons/${encodeURIComponent(lessonId)}/complete`),
+
+  // --- Framework practice & challenges ---------------------------------------------------------------
+  getFrameworks: () => http.get<FrameworkSummary[]>('/frameworks'),
+  getFrameworkPractice: (courseId: string) => http.get<PracticeTopic[]>(`/frameworks/${encodeURIComponent(courseId)}/practice`),
+  getFrameworkChallenges: (courseId: string) => http.get<FrameworkQuiz[]>(`/frameworks/${encodeURIComponent(courseId)}/challenges`),
+  getQuiz: (quizId: string) => orNull(http.get<FrameworkQuiz>(`/quizzes/${encodeURIComponent(quizId)}`)),
+  startQuiz: (quizId: string) => http.post<FrameworkQuiz>(`/quizzes/${encodeURIComponent(quizId)}/start`),
+  submitQuiz: (quizId: string, answers: { questionId: string; optionIndex: number }[]) =>
+    http.post<QuizResult>(`/quizzes/${encodeURIComponent(quizId)}/submit`, { answers }),
+  claimQuiz: (quizId: string) => http.post<LessonCompletion>(`/quizzes/${encodeURIComponent(quizId)}/claim`),
+
+  // --- Career paths --------------------------------------------------------------------------------
+  getPaths: () => http.get<CareerPathSummary[]>('/paths'),
+  getPath: (pathId: string) => orNull(http.get<CareerPathDetail>(`/paths/${encodeURIComponent(pathId)}`)),
+  enrollPath: (pathId: string) => http.put<CareerPathDetail>(`/paths/${encodeURIComponent(pathId)}/enroll`),
+  leavePath: (pathId: string) => http.delete<CareerPathDetail>(`/paths/${encodeURIComponent(pathId)}/enroll`),
 
   // --- Practice ------------------------------------------------------------------------------------
   getProblems: () => http.get<ProblemSummary[]>('/problems'),

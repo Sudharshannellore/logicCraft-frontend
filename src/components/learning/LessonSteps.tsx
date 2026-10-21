@@ -1,46 +1,79 @@
-import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Play, RotateCcw } from 'lucide-react'
-import type { Lesson } from '@/types'
-import { Button, buttonVariants } from '@/components/ui/Button'
-import { RichText } from '@/components/ui/RichText'
+import { useQuery } from '@tanstack/react-query'
+import type { Lesson, TutorialImage } from '@/types'
+import { buttonVariants } from '@/components/ui/Button'
+import { Markdown } from '@/components/ui/Markdown'
 import { PixelSprite } from '@/components/pixel/PixelSprite'
-import { HashTableDiagram } from './HashTableDiagram'
 import { api } from '@/services/api'
-import { errorMessage } from '@/services/api/client'
+import { HashTableDiagram } from './HashTableDiagram'
 import { languageMeta } from './languages'
 import { cn } from '@/utils/cn'
 
-export function StepConcept({ lesson }: { lesson: Lesson }) {
+function SourceCredit({ lesson }: { lesson: Lesson }) {
+  if (!lesson.liveSourceName) return null
   return (
-    <div className="grid gap-8 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)] lg:gap-12">
-      <div className="space-y-7">
-        <p className="text-lg leading-8 text-[var(--color-text-primary)] lg:text-xl lg:leading-9">{lesson.explanation}</p>
+    <p className="font-pixel text-xs text-[var(--color-text-muted)]">
+      Source:{' '}
+      {lesson.liveSourceUrl ? (
+        <a href={lesson.liveSourceUrl} target="_blank" rel="noreferrer" className="text-[var(--color-accent)] underline-offset-4 hover:underline">
+          {lesson.liveSourceName}
+        </a>
+      ) : (
+        lesson.liveSourceName
+      )}{' '}
+      (open source, loaded live)
+    </p>
+  )
+}
 
-        {lesson.keyPoints && (
-          <div>
-            <p className="mb-3 font-pixel text-xs uppercase tracking-[0.2em] text-[var(--color-text-muted)]">Key takeaways</p>
-            <ol className="space-y-3">
-              {lesson.keyPoints.map((point, i) => (
-                <li key={point} className="flex items-start gap-3 border-2 border-[var(--color-border)] bg-[var(--color-bg)] p-3">
-                  <span className="flex h-7 w-7 shrink-0 items-center justify-center bg-[var(--color-accent)] font-pixel text-sm text-[#06120a]">{i + 1}</span>
-                  <span className="pt-0.5 text-[15px] leading-relaxed text-[var(--color-text-secondary)]">{point}</span>
-                </li>
-              ))}
-            </ol>
-          </div>
+/** Diagrams for the concept, from Wikipedia. Shares its query with "Learn more", so it costs no extra request. */
+function ConceptImages({ images }: { images: TutorialImage[] }) {
+  return (
+    <aside className="space-y-4 self-start">
+      <p className="font-pixel text-xs uppercase tracking-[0.2em] text-[var(--color-text-muted)]">Pictures</p>
+      {images.map((image) => (
+        <figure key={image.url} className="border-2 border-[var(--color-border)] bg-[var(--color-bg)] p-3">
+          <img
+            src={image.url}
+            alt={image.caption ?? 'Diagram for this concept'}
+            loading="lazy"
+            referrerPolicy="no-referrer"
+            onError={(e) => {
+              e.currentTarget.closest('figure')?.classList.add('hidden')
+            }}
+            className="mx-auto h-48 w-full bg-white/90 object-contain p-2"
+          />
+          <figcaption className="mt-2 text-xs leading-relaxed text-[var(--color-text-secondary)]">
+            {image.caption && <span className="block text-[var(--color-text-primary)]">{image.caption}</span>}
+            <a href={image.sourceUrl} target="_blank" rel="noreferrer" className="text-[var(--color-accent)] underline-offset-4 hover:underline">
+              Image credit: Wikipedia
+            </a>
+          </figcaption>
+        </figure>
+      ))}
+    </aside>
+  )
+}
+
+/** The lesson text fills the width; when there are pictures they sit beside it, otherwise there is no empty column. */
+export function StepConcept({ lesson }: { lesson: Lesson }) {
+  const { data } = useQuery({
+    queryKey: ['lesson-resources', lesson.id],
+    queryFn: () => api.getLessonResources(lesson.id),
+    staleTime: 30 * 60_000,
+  })
+  const images = data?.images ?? []
+  return (
+    <div className={images.length > 0 ? 'grid gap-8 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)] lg:gap-12' : ''}>
+      <div className="min-w-0 space-y-7">
+        {lesson.liveContent ? (
+          <Markdown text={lesson.liveContent} className="text-base leading-8 text-[var(--color-text-primary)]" />
+        ) : (
+          <p className="text-lg leading-8 text-[var(--color-text-primary)] lg:text-xl lg:leading-9">{lesson.explanation}</p>
         )}
+        <SourceCredit lesson={lesson} />
       </div>
-
-      {lesson.analogy && (
-        <aside className="flex flex-col items-center gap-5 self-start border-2 border-[var(--color-violet)]/40 bg-[var(--color-violet-soft)] p-6 text-center shadow-[4px_4px_0_var(--pixel-ink)]">
-          <PixelSprite sprite="compass" scale={6} className="animate-pixel-hover" />
-          <div>
-            <p className="mb-2 font-pixel text-sm uppercase tracking-wider text-[var(--color-violet)]">In real life</p>
-            <p className="text-[15px] leading-relaxed text-[var(--color-text-primary)]">{lesson.analogy}</p>
-          </div>
-        </aside>
-      )}
+      {images.length > 0 && <ConceptImages images={images} />}
     </div>
   )
 }
@@ -86,128 +119,33 @@ export function StepCode({ lesson, language = 'python' }: { lesson: Lesson; lang
         </pre>
       </div>
 
-      {lesson.codeWalkthrough && (
-        <div>
-          <p className="mb-3 font-pixel text-xs uppercase tracking-[0.2em] text-[var(--color-text-muted)]">What's happening</p>
-          <ul className="space-y-2.5">
-            {lesson.codeWalkthrough.map((note) => (
-              <li key={note} className="flex gap-3 text-[15px] leading-relaxed text-[var(--color-text-secondary)]">
-                <span aria-hidden className="mt-[9px] h-1.5 w-1.5 shrink-0 bg-[var(--color-accent)]" />
-                <span>
-                  <RichText text={note} />
-                </span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
     </div>
   )
 }
 
-type RunState = { status: 'idle' } | { status: 'checking' } | { status: 'pass'; output: string } | { status: 'fail'; hint: string }
-
-export function StepTryIt({ lesson, language = 'python', onPassed }: { lesson: Lesson; language?: string; onPassed: () => void }) {
-  const tryIt = lesson.tryIt!
-  const [code, setCode] = useState(tryIt.starterCode)
-  const [run, setRun] = useState<RunState>({ status: 'idle' })
-
-  const runCode = async () => {
-    setRun({ status: 'checking' })
-    try {
-      const result = await api.checkTryIt(lesson.id, code)
-      if (result.passed) {
-        setRun({ status: 'pass', output: result.expectedOutput })
-        onPassed()
-      } else {
-        setRun({ status: 'fail', hint: result.hints[0] ?? 'Not quite — re-read the task and try again.' })
-      }
-    } catch (e) {
-      setRun({ status: 'fail', hint: errorMessage(e) })
-    }
-  }
-
-  const taskCard = (
-    <div className="flex gap-3 border-l-4 border-[var(--color-warning)] bg-[var(--color-warning)]/10 p-4">
-      <PixelSprite sprite="sword" scale={2} className="shrink-0" />
-      <p className="text-[15px] leading-relaxed text-[var(--color-text-primary)]">
-        <span className="font-pixel text-[var(--color-warning)]">Your task: </span>
-        {tryIt.prompt}
-      </p>
-    </div>
-  )
-
-  const output = (
-    <div
-      role="status"
-      className={cn(
-        'border-2 px-4 py-3 font-mono text-sm',
-        run.status === 'pass' && 'border-[var(--color-success)]/40 bg-[var(--color-success)]/10',
-        run.status === 'fail' && 'border-[var(--color-error)]/40 bg-[var(--color-error)]/10',
-        (run.status === 'idle' || run.status === 'checking') && 'border-[var(--color-border-strong)] bg-[var(--color-bg)] text-[var(--color-text-muted)]',
-      )}
-    >
-      <p className="mb-2 font-pixel text-xs uppercase tracking-[0.2em] text-[var(--color-text-muted)]">Output</p>
-      {run.status === 'idle' && <span>&gt; Run your code to see the result here.</span>}
-      {run.status === 'checking' && <span>&gt; Checking your code…</span>}
-      {run.status === 'pass' && (
-        <div className="flex items-start gap-3">
-          <PixelSprite sprite="star" scale={2} fps={3} className="shrink-0" />
-          <div>
-            <p className="text-[var(--color-text-primary)]">&gt; {run.output}</p>
-            <p className="mt-1 font-sans text-[var(--color-success)]">Nailed it — that's exactly what this task asked for.</p>
-          </div>
-        </div>
-      )}
-      {run.status === 'fail' && (
-        <div className="flex items-start gap-3">
-          <PixelSprite sprite="bug" scale={2} className="shrink-0" />
-          <p className="font-sans text-[var(--color-text-primary)]">
-            <span className="font-pixel text-[var(--color-error)]">Not yet. </span>
-            {run.hint}
-          </p>
-        </div>
-      )}
-    </div>
-  )
-
+/** A live lesson's practice: the syllabus exercise, graded on the practice exercise page. */
+export function StepExercise({ lesson }: { lesson: Lesson }) {
+  const exercise = lesson.exercise
+  if (!exercise) return null
   return (
-    <div className="grid gap-6 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] lg:gap-8">
-      <div className="lg:hidden">{taskCard}</div>
-
-      <div className="self-start overflow-hidden border-2 border-[var(--color-border-strong)]">
-        <div className="flex items-center justify-between border-b-2 border-[var(--color-border-strong)] bg-[var(--color-surface-elevated)] px-3 py-1.5">
-          <span className="font-pixel text-xs text-[var(--color-text-muted)]">{`try_it.${languageMeta(language).ext}`}</span>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                setCode(tryIt.starterCode)
-                setRun({ status: 'idle' })
-              }}
-            >
-              <RotateCcw className="h-3.5 w-3.5" /> Reset
-            </Button>
-            <Button size="sm" onClick={runCode} disabled={run.status === 'checking'}>
-              <Play className="h-3.5 w-3.5" /> {run.status === 'checking' ? 'Checking…' : 'Run'}
-            </Button>
-          </div>
-        </div>
-        <textarea
-          value={code}
-          onChange={(e) => setCode(e.target.value)}
-          spellCheck={false}
-          rows={8}
-          aria-label="Your code"
-          className="pixel-scroll block w-full resize-y bg-[#0d0f14] p-4 font-mono text-[14px] leading-7 text-[var(--color-text-primary)] outline-none focus:shadow-[inset_0_0_0_2px_var(--color-accent)]"
-        />
+    <div className="max-w-2xl space-y-5">
+      <p className="text-lg leading-8 text-[var(--color-text-primary)]">
+        Put it to work with <span className="text-[var(--color-accent)]">{exercise.name}</span>, an open-source exercise with its own test suite.
+      </p>
+      {!exercise.gradable && (
+        <p className="text-sm text-[var(--color-text-secondary)]">
+          Tests for this language can't run on our servers yet, so you'll solve it in Exercism's free online editor.
+        </p>
+      )}
+      <div className="flex flex-col gap-3 sm:flex-row">
+        <Link to={`/practice/exercism/${exercise.language}/${exercise.slug}`} className={buttonVariants({ variant: 'pixel', size: 'lg' })}>
+          Open the exercise
+        </Link>
+        <a href={exercise.url} target="_blank" rel="noreferrer" className={buttonVariants({ variant: 'pixelDark', size: 'lg' })}>
+          View on Exercism
+        </a>
       </div>
-
-      <div className="space-y-4 self-start">
-        <div className="hidden lg:block">{taskCard}</div>
-        {output}
-      </div>
+      <p className="text-sm text-[var(--color-text-muted)]">Optional: you can finish the lesson now and come back to the exercise any time.</p>
     </div>
   )
 }
@@ -233,8 +171,17 @@ export function StepComplete({ lesson, courseId, awardedXp }: { lesson: Lesson; 
         <p className="mt-4 font-pixel text-sm text-[var(--color-text-muted)]">You already earned this lesson's XP — nice refresher!</p>
       )}
       <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-        <Link to="/practice/two-sum" className={cn(buttonVariants({ variant: 'pixel', size: 'lg' }), 'text-lg')}>
-          Practice this concept
+        <Link
+          to={
+            lesson.exercise
+              ? `/practice/exercism/${lesson.exercise.language}/${lesson.exercise.slug}`
+              : lesson.courseId.startsWith('fw-')
+                ? `/quiz/fwq-practice-${lesson.id}`
+                : '/practice/two-sum'
+          }
+          className={cn(buttonVariants({ variant: 'pixel', size: 'lg' }), 'text-lg')}
+        >
+          {lesson.courseId.startsWith('fw-') ? 'Quiz yourself on this lesson' : 'Practice this concept'}
         </Link>
         <Link to={`/learn/${courseId}`} className={buttonVariants({ variant: 'pixelDark', size: 'lg' })}>
           Back to course

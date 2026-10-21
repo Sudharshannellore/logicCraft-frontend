@@ -9,9 +9,8 @@ import type { AIMessage, Lesson } from '@/types'
 import { Card } from '@/components/ui/Card'
 import { Button, buttonVariants } from '@/components/ui/Button'
 import { PageLoader } from '@/components/layout/PageLoader'
-import { QuizCard } from '@/components/learning/QuizCard'
 import { LessonResources } from '@/components/learning/LessonResources'
-import { StepCode, StepComplete, StepConcept, StepTryIt, StepVisualize } from '@/components/learning/LessonSteps'
+import { StepCode, StepComplete, StepConcept, StepExercise, StepVisualize } from '@/components/learning/LessonSteps'
 import { AICoach } from '@/components/ai/AICoach'
 import { QuestAIAvatar } from '@/components/illustrations/QuestAIAvatar'
 import { PixelSprite } from '@/components/pixel/PixelSprite'
@@ -19,7 +18,7 @@ import type { SpriteName } from '@/components/pixel/sprites'
 import { useWalletStore } from '@/stores/walletStore'
 import { cn } from '@/utils/cn'
 
-type StepId = 'concept' | 'visualize' | 'code' | 'tryit' | 'quiz'
+type StepId = 'concept' | 'visualize' | 'code' | 'exercise'
 
 interface Step {
   id: StepId
@@ -31,9 +30,8 @@ interface Step {
 function buildSteps(lesson: Lesson): Step[] {
   const steps: Step[] = [{ id: 'concept', label: 'Concept', title: `Understanding ${lesson.concept}`, sprite: 'book' }]
   if (lesson.concept.toLowerCase().includes('hash')) steps.push({ id: 'visualize', label: 'Visualize', title: 'See it in action', sprite: 'treasureMap' })
-  steps.push({ id: 'code', label: 'Code', title: 'Read the code', sprite: 'terminal' })
-  if (lesson.tryIt) steps.push({ id: 'tryit', label: 'Try it', title: 'Your turn', sprite: 'sword' })
-  steps.push({ id: 'quiz', label: 'Quiz', title: 'Quick check', sprite: 'scroll' })
+  if (lesson.codeExample) steps.push({ id: 'code', label: 'Code', title: 'Read the code', sprite: 'terminal' })
+  if (lesson.exercise) steps.push({ id: 'exercise', label: 'Practice', title: 'Put it to work', sprite: 'sword' })
   return steps
 }
 
@@ -87,8 +85,6 @@ export default function LessonPage() {
 
   const [index, setIndex] = useState(0)
   const [maxReached, setMaxReached] = useState(0)
-  const [tryPassed, setTryPassed] = useState(false)
-  const [quizCorrect, setQuizCorrect] = useState(false)
   const [aiOpen, setAiOpen] = useState(false)
   const [messages, setMessages] = useState<AIMessage[]>([])
   const [lessonAward, setLessonAward] = useState<number | null>(null)
@@ -157,6 +153,8 @@ export default function LessonPage() {
       void queryClient.invalidateQueries({ queryKey: ['course-path', courseId] })
       void queryClient.invalidateQueries({ queryKey: ['course', courseId] })
       void queryClient.invalidateQueries({ queryKey: ['courses'] })
+      void queryClient.invalidateQueries({ queryKey: ['paths'] })
+      void queryClient.invalidateQueries({ queryKey: ['path'] })
       void queryClient.invalidateQueries({ queryKey: ['daily-quest'] })
       void queryClient.invalidateQueries({ queryKey: ['lesson', lessonId] })
       return true
@@ -171,8 +169,6 @@ export default function LessonPage() {
     setIndex(i)
     setMaxReached((m) => Math.max(m, i))
   }
-
-  const canContinue = !step || (step.id === 'tryit' ? tryPassed : step.id === 'quiz' ? quizCorrect : true)
 
   const handleAsk = async (question: string) => {
     const now = new Date().toISOString()
@@ -260,17 +256,7 @@ export default function LessonPage() {
                 {step.id === 'concept' && <StepConcept lesson={lesson} />}
                 {step.id === 'visualize' && <StepVisualize />}
                 {step.id === 'code' && <StepCode lesson={lesson} language={course.language} />}
-                {step.id === 'tryit' && <StepTryIt lesson={lesson} language={course.language} onPassed={() => setTryPassed(true)} />}
-                {step.id === 'quiz' && (
-                  <QuizCard
-                    className="max-w-4xl"
-                    question={lesson.quiz.question}
-                    options={lesson.quiz.options}
-                    correctIndex={lesson.quiz.correctIndex}
-                    explanation={lesson.quiz.explanation}
-                    onResult={setQuizCorrect}
-                  />
-                )}
+                {step.id === 'exercise' && <StepExercise lesson={lesson} />}
               </>
             )}
           </Card>
@@ -284,16 +270,7 @@ export default function LessonPage() {
             <ArrowLeft className="h-4 w-4" /> Back
           </Button>
           <div className="flex items-center gap-3">
-            {step.id === 'tryit' && !tryPassed && (
-              <button
-                type="button"
-                onClick={() => goTo(index + 1)}
-                className="font-pixel text-sm text-[var(--color-text-muted)] underline-offset-4 hover:text-[var(--color-text-secondary)] hover:underline"
-              >
-                Skip for now
-              </button>
-            )}
-            <Button variant="pixel" size="lg" onClick={() => goTo(index + 1)} disabled={!canContinue} title={!canContinue ? (step.id === 'quiz' ? 'Answer correctly to finish' : 'Run your code successfully to continue') : undefined}>
+            <Button variant="pixel" size="lg" onClick={() => goTo(index + 1)}>
               {index === steps.length - 1 ? 'Finish lesson' : 'Continue'} <ArrowRight className="h-4 w-4" />
             </Button>
           </div>

@@ -1,5 +1,5 @@
 /** Types that exist because the app now talks to the Logicraft API (auth, wallet, social, store…). */
-import type { AIMessage, DailyQuest, Difficulty, ResumeTemplateId, SavedResume, UserProfile } from './index'
+import type { AIMessage, Course, DailyQuest, Difficulty, ResumeTemplateId, SavedResume, UserProfile } from './index'
 
 // --- Auth & wallet ----------------------------------------------------------------------------------
 
@@ -53,12 +53,6 @@ export interface LessonCompletion {
   courseProgressPercent: number
 }
 
-export interface TryItResult {
-  passed: boolean
-  hints: string[]
-  expectedOutput: string
-}
-
 export interface TutorialResource {
   id: string
   provider: string
@@ -81,10 +75,19 @@ export interface TutorialReference {
   thumbnailUrl?: string | null
 }
 
+/** A diagram that illustrates a concept; `sourceUrl` is its page, where the credit and licence live. */
+export interface TutorialImage {
+  url: string
+  caption?: string | null
+  sourceUrl: string
+  provider: string
+}
+
 export interface LessonResources {
   lessonId: string
   reference: TutorialReference | null
   resources: TutorialResource[]
+  images?: TutorialImage[]
 }
 
 export interface QuestClaimResult {
@@ -373,4 +376,109 @@ export interface ChallengeSubmitResult {
   /** The challenge bonus, on top of the exercise's own first-solve XP (result.awardedXp). */
   bonusXp: number
   balance: XpBalance
+}
+
+// --- Career paths ---------------------------------------------------------------------------------------
+
+export type PathStepState = 'completed' | 'in_progress' | 'next' | 'available'
+
+export interface CareerPathSummary {
+  id: string
+  title: string
+  tagline: string
+  description: string
+  sprite: string
+  totalSteps: number
+  completedSteps: number
+  progressPercent: number
+  /** The player chose to follow this path. */
+  enrolled: boolean
+  /** Suggested because of what the player already did in it. */
+  recommended: boolean
+  reason?: string | null
+  courseTitles: string[]
+}
+
+export interface CareerPathDetail extends CareerPathSummary {
+  steps: { course: Course; state: PathStepState }[]
+}
+
+// --- Framework practice & challenges (quizzes built from a framework's docs) -----------------------------------
+
+export type QuizKind = 'practice' | 'daily' | 'zone'
+export type QuizStatus = 'not_started' | 'in_progress' | 'passed' | 'failed' | 'timed_out'
+
+export interface QuizQuestion {
+  id: string
+  prompt: string
+  options: string[]
+  lessonId: string
+}
+
+export interface FrameworkQuiz {
+  id: string
+  kind: QuizKind
+  title: string
+  description: string
+  courseId: string
+  courseTitle: string
+  language: string
+  lessonId?: string | null
+  bossId?: string | null
+  bossName?: string | null
+  bossSprite?: string | null
+  questionCount: number
+  passPercent: number
+  /** Null = untimed. */
+  timeLimitMinutes: number | null
+  xp: number
+  /** False when the lessons have too little to quiz on. */
+  available: boolean
+  locked: boolean
+  defeated: boolean
+  retry: boolean
+  status: QuizStatus
+  bestPercent?: number | null
+  tries: number
+  /** Epoch ms; only while a timed run is going. */
+  deadline?: number | null
+  questions?: QuizQuestion[] | null
+  endsAt?: number | null
+}
+
+export interface QuestionResult {
+  questionId: string
+  correct: boolean
+  chosen: number | null
+  correctIndex: number
+  explanation: string
+  lessonId: string
+}
+
+export interface QuizResult {
+  quiz: FrameworkQuiz
+  correct: number
+  total: number
+  percent: number
+  passed: boolean
+  results: QuestionResult[]
+  awardedXp: number
+  balance: XpBalance
+}
+
+export interface FrameworkSummary {
+  courseId: string
+  title: string
+  language: string
+  topics: number
+  solved: number
+  progressPercent: number
+}
+
+export interface PracticeTopic {
+  lessonId: string
+  title: string
+  section: string
+  solved: boolean
+  bestPercent?: number | null
 }
