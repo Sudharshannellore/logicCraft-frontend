@@ -6,6 +6,7 @@ import { PixelSprite } from '@/components/pixel/PixelSprite'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/services/api'
 import { errorMessage } from '@/services/api/client'
+import { playSound } from '@/services/sound'
 import { useWalletStore } from '@/stores/walletStore'
 import { cn } from '@/utils/cn'
 
@@ -34,8 +35,10 @@ export function StreakRewards({ streakDays, className }: { streakDays: number; c
       queryClient.setQueryData(['streak-milestones'], milestones.map((m) => (m.days === days ? { ...m, claimed: true, claimable: false } : m)))
       setJustClaimed(days)
       window.setTimeout(() => setJustClaimed((d) => (d === days ? null : d)), 900)
+      playSound('claim')
     } catch (e) {
       setError(errorMessage(e))
+      playSound('error')
     } finally {
       setClaiming(null)
     }

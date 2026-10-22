@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import { useReducedMotion } from 'framer-motion'
 import { rasterizeSprite } from './PixelSprite'
 import { drawPixelText, pixelTextWidth } from './pixelFont'
+import { playSound } from '@/services/sound'
 import { cn } from '@/utils/cn'
 
 interface PixelWorldProps {
@@ -357,7 +358,14 @@ export function PixelWorld({ className, hud = true, interactive = false }: Pixel
       ref={wrapRef}
       className={cn('overflow-hidden', className)}
       aria-hidden="true"
-      onPointerDown={interactive ? () => (jumpRequest.current = true) : undefined}
+      onPointerDown={
+        interactive
+          ? () => {
+              jumpRequest.current = true
+              playSound('jump')
+            }
+          : undefined
+      }
     >
       <canvas ref={canvasRef} className="pixelated block" />
     </div>

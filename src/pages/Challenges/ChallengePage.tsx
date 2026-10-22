@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft, Check, Clock, ExternalLink, Lock, Swords, Users } from 'lucide-react'
 import { api } from '@/services/api'
 import { errorMessage } from '@/services/api/client'
+import { playSound, useCountdownSound } from '@/services/sound'
 import { useAuthStore } from '@/stores/authStore'
 import { useWalletStore } from '@/stores/walletStore'
 import { formatDuration } from '@/stores/socialStore'
@@ -141,9 +142,11 @@ function Lobby({ challenge, onPlay, backHref }: { challenge: LiveChallenge; onPl
     setError(null)
     try {
       queryClient.setQueryData(route.queryKey, await route.start())
+      playSound('start')
       onPlay()
     } catch (e) {
       setError(errorMessage(e))
+      playSound('error')
     } finally {
       setBusy(false)
     }
@@ -155,10 +158,12 @@ function Lobby({ challenge, onPlay, backHref }: { challenge: LiveChallenge; onPl
     setError(null)
     try {
       await api.claimZoneBoss(route.zone.courseId, route.zone.bossId)
+      playSound('unlock')
       await queryClient.invalidateQueries({ queryKey: ['course-path', route.zone.courseId] })
       await queryClient.invalidateQueries({ queryKey: route.queryKey })
     } catch (e) {
       setError(errorMessage(e))
+      playSound('error')
     } finally {
       setBusy(false)
     }
@@ -338,6 +343,8 @@ function Play({ challenge, onExit, onWon }: { challenge: LiveChallenge; onExit: 
     return () => window.clearTimeout(id)
   }, [notice])
 
+  useCountdownSound(secondsLeft(challenge, now))
+
   const submit = async (files: Record<string, string>) => {
     const response: ChallengeSubmitResult = await route.submit(stage.slug, files)
     setBalance(response.balance)
@@ -351,6 +358,7 @@ function Play({ challenge, onExit, onWon }: { challenge: LiveChallenge; onExit: 
     } else if (response.result.status === 'passed') {
       const next = response.challenge.stages.find((s) => !s.cleared)
       setNotice(next ? `Round ${index + 1} cleared! Next: ${next.name}` : 'Passed!')
+      playSound('stageClear')
     }
     return response.result
   }

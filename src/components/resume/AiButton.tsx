@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Sparkles } from 'lucide-react'
 import { errorMessage } from '@/services/api/client'
+import { playSound } from '@/services/sound'
 import { useWalletStore } from '@/stores/walletStore'
 import { cn } from '@/utils/cn'
 
@@ -41,10 +42,12 @@ export function AiButton({ label, cost, onRun, disabled, size = 'md', className 
     setError(null)
     try {
       await onRun()
+      playSound('magic')
       if (!mounted.current) return
       setCharged(true)
       timer.current = window.setTimeout(() => setCharged(false), 1400)
     } catch (e) {
+      playSound('error')
       if (mounted.current) setError(errorMessage(e))
     } finally {
       if (mounted.current) setThinking(false)

@@ -103,6 +103,7 @@ export default function SqlProblemPage() {
                 <button
                   type="button"
                   onClick={() => setHintsShown((n) => n + 1)}
+                  data-sound="hint"
                   className="group flex w-full items-center gap-2 border-2 border-dashed border-[var(--color-border-strong)] px-2 py-1.5 font-pixel text-xs text-[var(--color-text-secondary)] hover:border-[var(--color-violet)] hover:text-[var(--color-violet)]"
                 >
                   <PixelSprite sprite="potion" scale={1.5} className="group-hover:animate-pixel-bob" />

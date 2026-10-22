@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import type { XpBalance } from '@/types'
 import { api } from '@/services/api'
 import { queryClient } from '@/app/providers/QueryProvider'
+import { playSound } from '@/services/sound'
 
 /**
  * The player's XP, mirrored from the server. XP is Logicraft's single currency: the server earns and
@@ -11,6 +12,9 @@ import { queryClient } from '@/app/providers/QueryProvider'
 
 /** Must match the server's price (GET /config/economy). */
 export const AI_ANSWER_COST = 10
+
+/** Must match the server (app/domain/progression.py): reaching level n takes 25·n² XP. */
+const levelFor = (xp: number) => Math.max(1, Math.floor(Math.sqrt(Math.floor(Math.max(0, xp) / 25))))
 
 interface WalletState extends XpBalance {
   claimedMilestones: number[]
@@ -33,8 +37,11 @@ export const useWalletStore = create<WalletState>((set, get) => ({
 
   setBalance: (balance) => {
     if (!balance) return
-    const earned = balance.xp !== get().xp
+    const { xp: before, loaded } = get()
+    const earned = balance.xp !== before
     set({ xp: balance.xp, lifetimeXp: balance.lifetimeXp })
+    // The first load isn't an event; every later change is a coin, a spend, or a level up.
+    if (loaded && earned) playSound(levelFor(balance.xp) > levelFor(before) ? 'levelUp' : balance.xp > before ? 'coin' : 'spend')
     // XP changes level, league, rank and leaderboards.
     if (earned) {
       void queryClient.invalidateQueries({ queryKey: ['current-user'] })

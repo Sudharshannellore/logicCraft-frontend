@@ -15,6 +15,7 @@ import { JobLogo } from './JobLogo'
 import { templateName, useResumeTemplates } from '@/components/resume/templates'
 import { api } from '@/services/api'
 import { errorMessage } from '@/services/api/client'
+import { playSound } from '@/services/sound'
 import { applyTailoring, jobText, matchJob, RESUME_AI_COST } from '@/services/resumeAi'
 import { useResumeStore } from '@/stores/resumeStore'
 import { useApplicationsStore } from '@/stores/applicationsStore'
@@ -139,8 +140,10 @@ export function ApplyDialog({ job, onClose, onViewApplications }: ApplyDialogPro
       })
       if (saveToMain && tailor) updateResume(chosen.id, () => resume)
       setDone(true)
+      playSound('success')
     } catch (e) {
       setSubmitError(errorMessage(e))
+      playSound('error')
     } finally {
       setSubmitting(false)
     }

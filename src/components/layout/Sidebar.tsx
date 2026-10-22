@@ -9,6 +9,7 @@ import type { SpriteName } from '@/components/pixel/sprites'
 import { useSidebarStore } from '@/stores/sidebarStore'
 import { useAuthStore } from '@/stores/authStore'
 import { signOut } from '@/services/auth'
+import { playSound } from '@/services/sound'
 import { useWalletStore } from '@/stores/walletStore'
 import { cn } from '@/utils/cn'
 
@@ -125,6 +126,7 @@ export function Sidebar() {
     const onKey = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'b' && !isEditable(e.target)) {
         e.preventDefault()
+        playSound(useSidebarStore.getState().collapsed ? 'open' : 'close')
         toggle()
       }
     }
@@ -218,6 +220,7 @@ export function Sidebar() {
               <button
                 type="button"
                 onClick={() => void signOut().then(() => navigate('/signin', { replace: true }))}
+                data-sound="none"
                 aria-label="Sign out"
                 title="Sign out"
                 className="flex h-9 w-9 shrink-0 items-center justify-center border-2 border-[var(--color-border-strong)] text-[var(--color-text-secondary)] transition-colors hover:border-[var(--color-error)] hover:text-[var(--color-error)]"

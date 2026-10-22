@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { errorMessage } from '@/services/api/client'
+import { playSound } from '@/services/sound'
 import { useWalletStore } from '@/stores/walletStore'
 import { PixelSprite } from '@/components/pixel/PixelSprite'
 import { cn } from '@/utils/cn'
@@ -33,10 +34,12 @@ export function XpPurchaseButton({ children, cost, onPurchase, disabled, size = 
     try {
       if (!(await onPurchase())) return
       setCharged(true)
+      playSound('unlock')
       window.clearTimeout(timer.current)
       timer.current = window.setTimeout(() => setCharged(false), 1400)
     } catch (e) {
       setError(errorMessage(e))
+      playSound('error')
     } finally {
       setBusy(false)
     }

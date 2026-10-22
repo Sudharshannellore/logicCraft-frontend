@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft, Check, Clock, X } from 'lucide-react'
 import { api } from '@/services/api'
 import { errorMessage } from '@/services/api/client'
+import { playSound, useCountdownSound } from '@/services/sound'
 import type { FrameworkQuiz, QuizQuestion, QuizResult } from '@/types'
 import { Badge } from '@/components/ui/Badge'
 import { Button, buttonVariants } from '@/components/ui/Button'
@@ -128,7 +129,9 @@ export default function QuizPage() {
     onSuccess: (started) => {
       setOutcome(null)
       queryClient.setQueryData(['quiz', quizId], started)
+      playSound('start')
     },
+    onError: () => playSound('error'),
   })
   const submit = useMutation({
     mutationFn: (questions: QuizQuestion[]) =>
@@ -140,7 +143,9 @@ export default function QuizPage() {
       setBalance(result.balance)
       setOutcome({ result, questions })
       refresh(result.quiz.courseId)
+      playSound(result.passed ? 'victory' : 'defeat')
     },
+    onError: () => playSound('error'),
   })
   const claim = useMutation({
     mutationFn: () => api.claimQuiz(quizId),
@@ -148,8 +153,12 @@ export default function QuizPage() {
       setBalance(done.balance)
       if (quiz) refresh(quiz.courseId)
       void refetch()
+      playSound('unlock')
     },
+    onError: () => playSound('error'),
   })
+
+  useCountdownSound(quiz?.status === 'in_progress' && quiz.deadline ? Math.max(0, Math.floor((quiz.deadline - now) / 1000)) : null)
 
   if (quiz === null || error) {
     return (

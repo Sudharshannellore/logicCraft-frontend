@@ -10,6 +10,7 @@ import { useQuery } from '@tanstack/react-query'
 import type { Player } from '@/types'
 import { api } from '@/services/api'
 import { errorMessage } from '@/services/api/client'
+import { playSound } from '@/services/sound'
 import { DUEL_STAKES, DUEL_TIME_LIMITS, DUEL_WIN_BONUS, useFindPlayer, useSocialStore } from '@/stores/socialStore'
 import { useWalletStore } from '@/stores/walletStore'
 import { cn } from '@/utils/cn'
@@ -175,6 +176,7 @@ export function NewDuelDialog({ initialFriendId, onClose, onSent }: { initialFri
               } catch (e) {
                 setError(errorMessage(e))
                 setSending(false)
+                playSound('error')
               }
             }}
           >

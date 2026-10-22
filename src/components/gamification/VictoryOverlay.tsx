@@ -4,6 +4,7 @@ import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { PixelSprite } from '@/components/pixel/PixelSprite'
 import { CountUp } from '@/components/ui/CountUp'
 import { buttonVariants } from '@/components/ui/Button'
+import { playSound } from '@/services/sound'
 import { cn } from '@/utils/cn'
 
 interface VictoryOverlayProps {
@@ -34,6 +35,10 @@ export function VictoryOverlay({ open, xp, awardedXp, title = 'Problem solved', 
       })),
     [],
   )
+
+  useEffect(() => {
+    if (open) playSound('victory')
+  }, [open])
 
   useEffect(() => {
     if (!open) return

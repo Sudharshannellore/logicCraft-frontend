@@ -7,6 +7,7 @@ import { EMAIL_PATTERN, safeNext } from '@/utils/auth'
 import { Button } from '@/components/ui/Button'
 import { errorMessage, isApiError } from '@/services/api/client'
 import { signIn } from '@/services/auth'
+import { playSound } from '@/services/sound'
 
 export default function SignIn() {
   const navigate = useNavigate()
@@ -23,7 +24,7 @@ export default function SignIn() {
   const submit = async (e: FormEvent) => {
     e.preventDefault()
     setTouched(true)
-    if (!EMAIL_PATTERN.test(email.trim()) || !password) return
+    if (!EMAIL_PATTERN.test(email.trim()) || !password) return playSound('error')
     setSubmitting(true)
     setError(null)
     try {
@@ -32,6 +33,7 @@ export default function SignIn() {
     } catch (err) {
       setError(isApiError(err, 401) ? 'That email and password don’t match. Check them and try again.' : errorMessage(err))
       setSubmitting(false)
+      playSound('error')
     }
   }
 

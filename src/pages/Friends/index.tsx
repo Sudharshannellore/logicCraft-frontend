@@ -81,6 +81,7 @@ function PlayerIdChip() {
     <button
       type="button"
       onClick={copy}
+      data-sound="copy"
       title="Copy your Player ID"
       className="group flex items-center gap-2 border-2 border-[var(--color-border-strong)] bg-[var(--color-surface)] px-3 py-2 text-left transition-colors hover:border-[var(--color-accent)]"
     >
@@ -558,7 +559,7 @@ function AddFriendTab() {
         <code className="mt-5 block break-all border-2 border-[var(--color-border-strong)] bg-[var(--color-bg)] px-4 py-3 text-center font-mono text-base tracking-wide text-[var(--color-text-primary)]" data-testid="my-player-id">
           {myId}
         </code>
-        <Button variant="pixel" className="mt-3 w-full" onClick={copy}>
+        <Button variant="pixel" className="mt-3 w-full" onClick={copy} data-sound="copy">
           {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />} {copied ? 'Copied!' : 'Copy Player ID'}
         </Button>
         <ol className="mt-6 space-y-3">

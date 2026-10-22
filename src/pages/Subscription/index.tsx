@@ -12,6 +12,7 @@ import { useQuery } from '@tanstack/react-query'
 import type { Billing, XpPack, XpPlan } from '@/types'
 import { api } from '@/services/api'
 import { errorMessage } from '@/services/api/client'
+import { playSound } from '@/services/sound'
 import { PageLoader } from '@/components/layout/PageLoader'
 import { formatInr, useSubscriptionState, useSubscriptionStore } from '@/stores/subscriptionStore'
 import { cn } from '@/utils/cn'
@@ -66,8 +67,10 @@ function CheckoutDialog({ item, onClose }: { item: CheckoutItem; onClose: () => 
       if (item.kind === 'plan') await subscribe(item.plan.id, item.billing)
       else await buyPack(item.pack.id)
       setDone(true)
+      playSound('purchase')
     } catch (e) {
       setError(errorMessage(e))
+      playSound('error')
     } finally {
       setBusy(false)
     }

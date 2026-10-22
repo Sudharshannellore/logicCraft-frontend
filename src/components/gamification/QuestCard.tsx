@@ -10,6 +10,7 @@ import { PixelSprite } from '@/components/pixel/PixelSprite'
 import type { DailyQuest } from '@/types'
 import { api } from '@/services/api'
 import { errorMessage } from '@/services/api/client'
+import { playSound } from '@/services/sound'
 import { useWalletStore } from '@/stores/walletStore'
 import { cn } from '@/utils/cn'
 
@@ -29,8 +30,10 @@ export function QuestCard({ quest }: { quest: DailyQuest }) {
       setBalance(result.balance)
       queryClient.setQueryData(['daily-quest'], result.quest)
       setCelebrate(true)
+      playSound('claim')
     } catch (e) {
       setError(errorMessage(e))
+      playSound('error')
     } finally {
       setClaiming(false)
     }

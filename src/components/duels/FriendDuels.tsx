@@ -9,6 +9,7 @@ import { NewDuelDialog } from './NewDuelDialog'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/services/api'
 import { errorMessage } from '@/services/api/client'
+import { playSound } from '@/services/sound'
 import { DUEL_WIN_BONUS, formatDuration, useFindPlayer, useSocialStore, useSocialSync, type Duel } from '@/stores/socialStore'
 import { useWalletStore } from '@/stores/walletStore'
 import { cn } from '@/utils/cn'
@@ -41,6 +42,7 @@ function DuelRow({ duel }: { duel: Duel }) {
       await action(duel.id)
     } catch (e) {
       setError(errorMessage(e))
+      playSound('error')
     } finally {
       setBusy(false)
     }

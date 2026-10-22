@@ -8,6 +8,7 @@ import type { SpriteName } from '@/components/pixel/sprites'
 import { QuestAIAvatar } from '@/components/illustrations/QuestAIAvatar'
 import { api } from '@/services/api'
 import { errorMessage } from '@/services/api/client'
+import { playSound } from '@/services/sound'
 import { useWalletStore } from '@/stores/walletStore'
 import type { SqlGrade as GradeResult, SqlProblem, SqlQueryResult as QueryResult, SqlTable } from '@/types'
 import { cn } from '@/utils/cn'
@@ -58,6 +59,7 @@ export function SqlBoard({ tables, problem, onSolved }: SqlBoardProps) {
   const activeTable = useMemo(() => tables.find((t) => t.name === selectedTable) ?? tables[0], [tables, selectedTable])
 
   async function execute(submit: boolean) {
+    playSound(submit ? 'submit' : 'run')
     setIsRunning(true)
     setHasRun(false)
     setVerdict(null)
@@ -73,9 +75,14 @@ export function SqlBoard({ tables, problem, onSolved }: SqlBoardProps) {
         setVerdict(response.grade)
         if (response.grade.passed) onSolved?.(response.awardedXp ?? 0)
       }
+      // An accepted submit gets the victory fanfare from the page.
+      if (!response.result) playSound('error')
+      else if (submit && response.grade && !response.grade.passed) playSound('fail')
+      else if (!submit) playSound('reveal')
     } catch (e) {
       setResult(null)
       setError(errorMessage(e))
+      playSound('error')
     }
     setIsRunning(false)
     setHasRun(true)
@@ -175,12 +182,12 @@ export function SqlBoard({ tables, problem, onSolved }: SqlBoardProps) {
                   <RotateCcw className="h-3.5 w-3.5" /> Reset
                 </Button>
               )}
-              <Button size="sm" variant={problem ? 'secondary' : 'primary'} onClick={() => execute(false)} disabled={isRunning}>
+              <Button size="sm" variant={problem ? 'secondary' : 'primary'} onClick={() => execute(false)} disabled={isRunning} data-sound="none">
                 <Play className="h-3.5 w-3.5" />
                 {isRunning ? 'Running…' : problem ? 'Run' : 'Run Query'}
               </Button>
               {problem && (
-                <Button size="sm" onClick={() => execute(true)} disabled={isRunning}>
+                <Button size="sm" onClick={() => execute(true)} disabled={isRunning} data-sound="none">
                   <Send className="h-3.5 w-3.5" /> Submit
                 </Button>
               )}

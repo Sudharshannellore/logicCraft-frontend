@@ -1,5 +1,6 @@
 import { queryClient } from '@/app/providers/QueryProvider'
 import { api } from '@/services/api'
+import { playSound, setSoundEnabled } from '@/services/sound'
 import { useApplicationsStore } from '@/stores/applicationsStore'
 import { useAuthStore } from '@/stores/authStore'
 import { useResumeStore } from '@/stores/resumeStore'
@@ -23,6 +24,7 @@ export async function signIn(email: string, password: string) {
   forgetPlayerData() // a different account may have been signed in on this browser
   useAuthStore.getState().setSession(session)
   await bootstrapSession()
+  playSound('signIn')
   return session.user
 }
 
@@ -31,10 +33,12 @@ export async function signUp(username: string, email: string, password: string) 
   forgetPlayerData()
   useAuthStore.getState().setSession(session)
   await bootstrapSession()
+  playSound('signIn')
   return session.user
 }
 
 export async function signOut() {
+  playSound('signOut')
   const refreshToken = useAuthStore.getState().refreshToken
   useAuthStore.getState().clear()
   forgetPlayerData()
@@ -46,4 +50,12 @@ export async function bootstrapSession() {
   const [user] = await Promise.all([api.getCurrentUser(), useWalletStore.getState().load()])
   useAuthStore.getState().setUser(user)
   queryClient.setQueryData(['current-user'], user)
+  // The "Sound effects" preference; not needed to show the app, so it never blocks or fails sign-in.
+  void api
+    .getSettings()
+    .then((settings) => {
+      setSoundEnabled(settings.soundEffects)
+      queryClient.setQueryData(['settings'], settings)
+    })
+    .catch(() => undefined)
 }

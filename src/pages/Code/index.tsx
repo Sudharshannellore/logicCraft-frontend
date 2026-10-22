@@ -5,6 +5,7 @@ import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { ArrowLeft, Play, Send, Swords, X } from 'lucide-react'
 import { api } from '@/services/api'
 import { errorMessage } from '@/services/api/client'
+import { playSound, useCountdownSound } from '@/services/sound'
 import type { AIMessage, Language, SubmissionResult } from '@/types'
 import { ProblemPanel } from '@/components/coding/ProblemPanel'
 import { CodeEditor } from '@/components/coding/CodeEditor'
@@ -90,10 +91,15 @@ export default function CodeWorkspace() {
   useEffect(() => {
     if (duelLive && duel.startedAt && remaining <= 0) {
       void forfeitDuel(duel.id)
-        .then(setDuelResult)
+        .then((result) => {
+          setDuelResult(result)
+          playSound('defeat')
+        })
         .catch(() => undefined)
     }
   }, [duelLive, duel, remaining, forfeitDuel])
+
+  useCountdownSound(duelLive && duel.startedAt ? Math.max(0, remaining) : null)
 
   useEffect(() => {
     if (problem) setCode(problem.starterCode[language])
@@ -137,6 +143,7 @@ export default function CodeWorkspace() {
 
   const runSubmission = async (submit: boolean) => {
     if (isRunning) return
+    playSound(submit ? 'submit' : 'run')
     setIsRunning(true)
     setSubmitted(submit)
     setConsoleTab('results')
@@ -164,6 +171,10 @@ export default function CodeWorkspace() {
       void queryClient.invalidateQueries({ queryKey: ['daily-quest'] })
       setVictoryOpen(true)
     }
+    // A passing submit gets the victory fanfare from the overlay.
+    if (response.status === 'error') playSound('error')
+    else if (response.status === 'failed') playSound('fail')
+    else if (!submit) playSound('success')
     if (response.status === 'failed') {
       setNeedsHelp(true)
       setShaking(true)
@@ -241,6 +252,7 @@ export default function CodeWorkspace() {
               <button
                 type="button"
                 onClick={openAi}
+                data-sound="open"
                 aria-expanded={aiOpen}
                 aria-controls="quest-ai-drawer"
                 className={cn(
@@ -254,10 +266,10 @@ export default function CodeWorkspace() {
                 <span className="hidden sm:inline">Quest AI</span>
                 {needsHelp && <span className="absolute -right-1 -top-1 h-2.5 w-2.5 bg-[var(--color-error)]" aria-label="Quest AI has a suggestion" />}
               </button>
-              <Button variant="secondary" size="sm" className="h-9" onClick={() => runSubmission(false)} disabled={isRunning} title="Run (Ctrl+Enter)">
+              <Button variant="secondary" size="sm" className="h-9" onClick={() => runSubmission(false)} disabled={isRunning} data-sound="none" title="Run (Ctrl+Enter)">
                 <Play className="h-3.5 w-3.5" /> Run
               </Button>
-              <Button size="sm" className="h-9" onClick={() => runSubmission(true)} disabled={isRunning} title="Submit (Ctrl+Shift+Enter)">
+              <Button size="sm" className="h-9" onClick={() => runSubmission(true)} disabled={isRunning} data-sound="none" title="Submit (Ctrl+Shift+Enter)">
                 <Send className="h-3.5 w-3.5" /> Submit
               </Button>
             </div>
@@ -338,6 +350,7 @@ export default function CodeWorkspace() {
                     <button
                       type="button"
                       onClick={() => setAiOpen(false)}
+                      data-sound="close"
                       aria-label="Close Quest AI"
                       className="absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center border-2 border-[var(--color-border-strong)] bg-[var(--color-surface-elevated)] text-[var(--color-text-secondary)] hover:border-[var(--color-violet)] hover:text-[var(--color-violet)]"
                     >

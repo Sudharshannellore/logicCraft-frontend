@@ -8,6 +8,7 @@ import { PixelSprite } from '@/components/pixel/PixelSprite'
 import { Button } from '@/components/ui/Button'
 import { errorMessage, isApiError } from '@/services/api/client'
 import { signUp } from '@/services/auth'
+import { playSound } from '@/services/sound'
 import { cn } from '@/utils/cn'
 
 type Field = 'username' | 'email' | 'password' | 'confirm'
@@ -53,7 +54,7 @@ export default function SignUp() {
   const submit = async (e: FormEvent) => {
     e.preventDefault()
     setTouched({ username: true, email: true, password: true, confirm: true })
-    if (Object.keys(errors).length) return
+    if (Object.keys(errors).length) return playSound('error')
     setSubmitting(true)
     setFormError(null)
     try {
@@ -65,6 +66,7 @@ export default function SignUp() {
         setServerErrors({ [err.details.field as Field]: err.message.replace(/^\w+: /, '') })
       else setFormError(errorMessage(err))
       setSubmitting(false)
+      playSound('error')
     }
   }
 

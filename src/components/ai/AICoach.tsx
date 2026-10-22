@@ -7,6 +7,7 @@ import { NotEnoughXp, XpBalance } from '@/components/economy/EconomyBits'
 import { PixelSprite } from '@/components/pixel/PixelSprite'
 import { matchSuggestions } from '@/services/questAi'
 import { errorMessage } from '@/services/api/client'
+import { playSound } from '@/services/sound'
 import { AI_ANSWER_COST, useWalletStore } from '@/stores/walletStore'
 import { cn } from '@/utils/cn'
 
@@ -61,9 +62,11 @@ export function AICoach({ messages, onAsk, suggestions = [], className }: AICoac
     setInput('')
     try {
       await onAsk?.(q)
+      playSound('aiReply')
     } catch (e) {
       setError(errorMessage(e))
       setInput(q)
+      playSound('error')
     } finally {
       setPending(false)
     }

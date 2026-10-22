@@ -6,6 +6,7 @@ import { ArrowLeft, CheckCircle2, ExternalLink, Play, RotateCcw, Send, XCircle }
 import type { LibraryExerciseDetail, LibraryRunResult } from '@/types'
 import { api } from '@/services/api'
 import { errorMessage } from '@/services/api/client'
+import { playSound } from '@/services/sound'
 import { useWalletStore } from '@/stores/walletStore'
 import { Badge, difficultyVariant } from '@/components/ui/Badge'
 import { Button, buttonVariants } from '@/components/ui/Button'
@@ -180,11 +181,15 @@ export function ExerciseWorkspace({ exercise, backHref, backLabel, onSubmit, hea
 
   const run = async (submit: boolean) => {
     if (running || !canRun) return
+    playSound(submit ? 'submit' : 'run')
     setRunning(true)
     setError(null)
     try {
       if (submit && onSubmit) {
-        setResult(await onSubmit(files))
+        // The caller celebrates a passing submit (round cleared, boss defeated).
+        const graded = await onSubmit(files)
+        setResult(graded)
+        if (graded.status !== 'passed') playSound('fail')
         return
       }
       const response = submit
@@ -192,6 +197,8 @@ export function ExerciseWorkspace({ exercise, backHref, backLabel, onSubmit, hea
         : await api.runLibraryExercise(exercise.language.id, exercise.slug, files)
       setResult(response)
       setBalance(response.balance)
+      if (response.status !== 'passed') playSound('fail')
+      else if (!submit) playSound('success')
       if (submit && response.status === 'passed') {
         setVictory(response.awardedXp ?? 0)
         void queryClient.invalidateQueries({ queryKey: ['library'] })
@@ -200,6 +207,7 @@ export function ExerciseWorkspace({ exercise, backHref, backLabel, onSubmit, hea
       }
     } catch (e) {
       setError(errorMessage(e))
+      playSound('error')
     } finally {
       setRunning(false)
     }
@@ -243,10 +251,10 @@ export function ExerciseWorkspace({ exercise, backHref, backLabel, onSubmit, hea
         </a>
         {gradable && (
           <>
-            <Button variant="pixelDark" size="sm" onClick={() => void run(false)} disabled={running || !canRun}>
+            <Button variant="pixelDark" size="sm" onClick={() => void run(false)} disabled={running || !canRun} data-sound="none">
               <Play className="h-3.5 w-3.5" /> Run tests
             </Button>
-            <Button variant="pixel" size="sm" onClick={() => void run(true)} disabled={running || !canRun}>
+            <Button variant="pixel" size="sm" onClick={() => void run(true)} disabled={running || !canRun} data-sound="none">
               <Send className="h-3.5 w-3.5" /> Submit
             </Button>
           </>

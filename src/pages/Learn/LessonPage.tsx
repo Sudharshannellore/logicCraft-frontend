@@ -5,6 +5,7 @@ import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { ArrowLeft, ArrowRight, Clock, X } from 'lucide-react'
 import { api } from '@/services/api'
 import { errorMessage } from '@/services/api/client'
+import { playSound } from '@/services/sound'
 import type { AIMessage, Lesson } from '@/types'
 import { Card } from '@/components/ui/Card'
 import { Button, buttonVariants } from '@/components/ui/Button'
@@ -149,6 +150,7 @@ export default function LessonPage() {
       const completion = await api.completeLesson(lesson.id)
       setBalance(completion.balance)
       setLessonAward(completion.awarded)
+      playSound('lessonComplete')
       // The map, course progress and today's quest all moved on.
       void queryClient.invalidateQueries({ queryKey: ['course-path', courseId] })
       void queryClient.invalidateQueries({ queryKey: ['course', courseId] })
@@ -160,6 +162,7 @@ export default function LessonPage() {
       return true
     } catch (e) {
       setFinishError(errorMessage(e))
+      playSound('error')
       return false
     }
   }
@@ -208,6 +211,7 @@ export default function LessonPage() {
             <button
               type="button"
               onClick={() => setAiOpen(true)}
+              data-sound="open"
               aria-expanded={aiOpen}
               aria-controls="lesson-ai-drawer"
               className="flex items-center gap-2 border-2 border-[var(--color-violet)]/50 px-2.5 py-1 font-pixel text-xs text-[var(--color-text-primary)] transition-colors hover:border-[var(--color-violet)] hover:bg-[var(--color-violet-soft)]"
@@ -266,11 +270,11 @@ export default function LessonPage() {
       {/* Step navigation */}
       {!isComplete && (
         <nav aria-label="Lesson steps" className="mt-6 flex items-center justify-between gap-3">
-          <Button variant="pixelDark" onClick={() => goTo(index - 1)} disabled={index === 0}>
+          <Button variant="pixelDark" onClick={() => goTo(index - 1)} disabled={index === 0} data-sound="back">
             <ArrowLeft className="h-4 w-4" /> Back
           </Button>
           <div className="flex items-center gap-3">
-            <Button variant="pixel" size="lg" onClick={() => goTo(index + 1)}>
+            <Button variant="pixel" size="lg" onClick={() => goTo(index + 1)} data-sound="step">
               {index === steps.length - 1 ? 'Finish lesson' : 'Continue'} <ArrowRight className="h-4 w-4" />
             </Button>
           </div>
@@ -307,6 +311,7 @@ export default function LessonPage() {
               <button
                 type="button"
                 onClick={() => setAiOpen(false)}
+                data-sound="close"
                 aria-label="Close Quest AI"
                 className="absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center border-2 border-[var(--color-border-strong)] bg-[var(--color-surface-elevated)] text-[var(--color-text-secondary)] hover:border-[var(--color-violet)] hover:text-[var(--color-violet)]"
               >

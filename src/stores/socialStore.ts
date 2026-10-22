@@ -2,6 +2,7 @@ import { useCallback, useEffect } from 'react'
 import { create } from 'zustand'
 import type { AddFriendResult, DuelStatus, DuelView, Player, SocialOverview } from '@/types'
 import { api } from '@/services/api'
+import { playSound, type SoundName } from '@/services/sound'
 import { useWalletStore } from './walletStore'
 
 /**
@@ -91,6 +92,26 @@ function fromOverview(overview: SocialOverview, players: Record<string, Player>)
   }
 }
 
+/** The sound for the most important thing the other player did between two refreshes, if anything. */
+function socialEventSound(
+  previous: Pick<SocialState, 'friends' | 'incomingRequests' | 'duels'>,
+  overview: SocialOverview,
+  duels: DuelView[],
+  before: Map<string, DuelStatus>,
+): SoundName | null {
+  const changed = (d: DuelView, to: DuelStatus) => before.has(d.id) && before.get(d.id) !== to && d.status === to
+  if (duels.some((d) => changed(d, 'won'))) return 'victory'
+  if (duels.some((d) => changed(d, 'lost'))) return 'defeat'
+  const knownDuels = new Set(previous.duels.map((d) => d.id))
+  if (duels.some((d) => !knownDuels.has(d.id) && d.direction === 'received' && d.status === 'pending')) return 'duel'
+  if (duels.some((d) => d.direction === 'sent' && changed(d, 'active'))) return 'duel'
+  const knownRequests = new Set(previous.incomingRequests.map((r) => r.playerId))
+  if (overview.incomingRequests.some((r) => !knownRequests.has(r.playerId))) return 'notify'
+  if (overview.friends.some((p) => !previous.friends.includes(p.id))) return 'friend'
+  if (duels.some((d) => changed(d, 'draw') || changed(d, 'declined') || changed(d, 'cancelled'))) return 'notify'
+  return null
+}
+
 function withDuelPlayers(views: DuelView[], players: Record<string, Player>) {
   const known = { ...players }
   for (const v of views) if (v.friend) known[v.friendId] = v.friend
@@ -106,7 +127,8 @@ export const useSocialStore = create<SocialState>((set, get) => ({
       api.getDuels(),
       get().directory.length ? Promise.resolve(null) : api.getPlayers(50),
     ])
-    const before = new Map(get().duels.map((d) => [d.id, d.status]))
+    const previous = get()
+    const before = new Map(previous.duels.map((d) => [d.id, d.status]))
     let players = get().players
     if (directory) for (const p of directory) players = { ...players, [p.id]: p }
     const fromSocial = fromOverview(overview, withDuelPlayers(duels, players))
@@ -121,22 +143,38 @@ export const useSocialStore = create<SocialState>((set, get) => ({
     if (duels.some((d) => before.has(d.id) && before.get(d.id) !== d.status && ENDED.has(d.status))) {
       void useWalletStore.getState().load().catch(() => undefined)
     }
+    // What the other player did since the last look (my own actions already played their sound).
+    if (previous.loaded) {
+      const sound = socialEventSound(previous, overview, duels, before)
+      if (sound) playSound(sound)
+    }
   },
 
   sendFriendRequest: async (rawId) => {
     const { result, overview } = await api.sendFriendRequest(rawId.trim())
     set(fromOverview(overview, get().players))
+    playSound(result === 'sent' ? 'success' : result === 'accepted-incoming' ? 'friend' : 'error')
     return result
   },
 
-  acceptRequest: async (playerId) => set(fromOverview(await api.acceptFriendRequest(playerId), get().players)),
-  declineRequest: async (playerId) => set(fromOverview(await api.declineFriendRequest(playerId), get().players)),
-  removeFriend: async (playerId) => set(fromOverview(await api.removeFriend(playerId), get().players)),
+  acceptRequest: async (playerId) => {
+    set(fromOverview(await api.acceptFriendRequest(playerId), get().players))
+    playSound('friend')
+  },
+  declineRequest: async (playerId) => {
+    set(fromOverview(await api.declineFriendRequest(playerId), get().players))
+    playSound('remove')
+  },
+  removeFriend: async (playerId) => {
+    set(fromOverview(await api.removeFriend(playerId), get().players))
+    playSound('remove')
+  },
 
   sendDuel: async (input) => {
     const { duel, balance } = await api.createDuel(input)
     useWalletStore.getState().setBalance(balance)
     get().upsertDuel(duel)
+    playSound('duel')
     return true
   },
 
@@ -144,6 +182,7 @@ export const useSocialStore = create<SocialState>((set, get) => ({
     const { duel, balance } = await api.acceptDuel(id)
     useWalletStore.getState().setBalance(balance)
     get().upsertDuel(duel)
+    playSound('duel')
     return true
   },
 
@@ -151,15 +190,21 @@ export const useSocialStore = create<SocialState>((set, get) => ({
     const { duel, balance } = await api.declineDuel(id)
     useWalletStore.getState().setBalance(balance)
     get().upsertDuel(duel)
+    playSound('remove')
   },
 
   cancelDuel: async (id) => {
     const { duel, balance } = await api.cancelDuel(id)
     useWalletStore.getState().setBalance(balance)
     get().upsertDuel(duel)
+    playSound('remove')
   },
 
-  startDuel: async (id) => get().upsertDuel(await api.startDuel(id)),
+  startDuel: async (id) => {
+    const duel = get().upsertDuel(await api.startDuel(id))
+    playSound('start')
+    return duel
+  },
   forfeitDuel: async (id) => get().upsertDuel(await api.forfeitDuel(id)),
 
   upsertDuel: (view) => {

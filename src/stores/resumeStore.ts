@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { create } from 'zustand'
 import type { ResumeData, ResumeLibrary, ResumeTemplateId, SavedResume } from '@/types'
 import { api } from '@/services/api'
+import { playSound } from '@/services/sound'
 import { useWalletStore } from './walletStore'
 
 /**
@@ -100,6 +101,7 @@ export const useResumeStore = create<ResumeState>((set, get) => {
       timers.delete(id)
       const fresh = await api.resetResume(id)
       set((s) => ({ resumes: s.resumes.map((r) => (r.id === id ? fresh : r)) }))
+      playSound('remove')
     },
 
     select: (id) => {
@@ -123,6 +125,7 @@ export const useResumeStore = create<ResumeState>((set, get) => {
       window.clearTimeout(timers.get(id))
       timers.delete(id)
       set(applyLibrary(await api.deleteResume(id)))
+      playSound('remove')
     },
 
     setTemplate: (templateId) => {

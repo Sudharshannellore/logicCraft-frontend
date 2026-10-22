@@ -6,6 +6,7 @@ import type { UserSettings } from '@/types'
 import { api } from '@/services/api'
 import { errorMessage } from '@/services/api/client'
 import { signOut } from '@/services/auth'
+import { playSound, setSoundEnabled } from '@/services/sound'
 import { useAuthStore } from '@/stores/authStore'
 import { Button } from '@/components/ui/Button'
 import { PasswordField } from '@/components/auth/AuthFields'
@@ -97,8 +98,10 @@ function ChangePassword() {
       setCurrent('')
       setNext('')
       setMessage({ ok: true, text: 'Password changed. Other devices have been signed out.' })
+      playSound('success')
     } catch (err) {
       setMessage({ ok: false, text: errorMessage(err) })
+      playSound('error')
     } finally {
       setBusy(false)
     }
@@ -141,11 +144,17 @@ export default function Settings() {
     if (!settings) return
     setSaveError(null)
     queryClient.setQueryData(['settings'], { ...settings, [key]: value }) // show it right away
+    if (key === 'soundEffects') {
+      setSoundEnabled(value)
+      if (value) playSound('toggleOn') // the click itself was silent, since sound was still off
+    }
     try {
       queryClient.setQueryData(['settings'], await api.updateSettings({ [key]: value }))
     } catch (e) {
       queryClient.setQueryData(['settings'], settings)
+      if (key === 'soundEffects') setSoundEnabled(settings.soundEffects)
       setSaveError(errorMessage(e))
+      playSound('error')
     }
   }
 
@@ -183,7 +192,7 @@ export default function Settings() {
                 Lv {user.level} · {user.league.label}
               </p>
             </div>
-            <Button variant="outline" onClick={() => void leave()}>
+            <Button variant="outline" data-sound="none" onClick={() => void leave()}>
               <LogOut className="h-4 w-4" /> Sign out
             </Button>
           </CardContent>
