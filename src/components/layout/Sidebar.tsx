@@ -116,10 +116,10 @@ function isEditable(target: EventTarget | null) {
 
 export function Sidebar() {
   const { collapsed, toggle } = useSidebarStore()
-  const lifetimeXp = useWalletStore((s) => s.lifetimeXp)
+  const totalXp = useWalletStore((s) => s.xp)
   const currentUser = useAuthStore((s) => s.user)
   const navigate = useNavigate()
-  const xpPercent = currentUser ? (lifetimeXp / currentUser.xpToNextLevel) * 100 : 0
+  const xpPercent = currentUser ? (totalXp / currentUser.xpToNextLevel) * 100 : 0
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -185,13 +185,13 @@ export function Sidebar() {
             </div>
             <span className="font-pixel text-[11px] text-[var(--color-accent)]">LV {currentUser.level}</span>
             <RailTooltip>
-              {currentUser.username} · {lifetimeXp.toLocaleString()} XP
+              {currentUser.username} · {totalXp.toLocaleString()} XP
             </RailTooltip>
           </Link>
         ) : (
           <div className="border-2 border-[var(--color-border-strong)] bg-[var(--color-bg)] p-2.5 shadow-[3px_3px_0_var(--pixel-ink)]">
             <div className="flex items-center gap-2.5">
-              <Link to="/profile" className="group flex min-w-0 flex-1 items-center gap-2.5" title={`${lifetimeXp.toLocaleString()} / ${currentUser.xpToNextLevel.toLocaleString()} XP to next level`}>
+              <Link to="/profile" className="group flex min-w-0 flex-1 items-center gap-2.5" title={`${totalXp.toLocaleString()} / ${currentUser.xpToNextLevel.toLocaleString()} XP to next level`}>
                 <div className="flex h-10 w-10 shrink-0 items-end justify-center overflow-hidden border-2 border-[var(--color-violet)] bg-[var(--color-violet-soft)] transition-colors group-hover:border-[var(--color-accent)]">
                   <PixelSprite sprite="hero" scale={2.25} className="translate-y-1" />
                 </div>

@@ -6,7 +6,7 @@ import { queryClient } from '@/app/providers/QueryProvider'
 /**
  * The player's XP, mirrored from the server. XP is Logicraft's single currency: the server earns and
  * spends it; every action that changes it returns the new balance, which lands here via `setBalance`.
- * `lifetimeXp` only ever grows and drives levels, so spending never costs a level.
+ * `xp` is the total XP shown everywhere: it drives level, league, rank and the leaderboards.
  */
 
 /** Must match the server's price (GET /config/economy). */
@@ -33,9 +33,9 @@ export const useWalletStore = create<WalletState>((set, get) => ({
 
   setBalance: (balance) => {
     if (!balance) return
-    const earned = balance.lifetimeXp !== get().lifetimeXp
+    const earned = balance.xp !== get().xp
     set({ xp: balance.xp, lifetimeXp: balance.lifetimeXp })
-    // Earned XP can change level, league, rank and leaderboards.
+    // XP changes level, league, rank and leaderboards.
     if (earned) {
       void queryClient.invalidateQueries({ queryKey: ['current-user'] })
       void queryClient.invalidateQueries({ queryKey: ['leaderboard'] })

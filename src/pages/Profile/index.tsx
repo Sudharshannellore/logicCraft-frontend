@@ -52,7 +52,7 @@ function AttributeTile({ sprite, label, color, children }: { sprite: SpriteName;
 
 export default function Profile() {
   const { data: user } = useQuery({ queryKey: ['current-user'], queryFn: api.getCurrentUser })
-  const lifetimeXp = useWalletStore((s) => s.lifetimeXp)
+  const totalXp = useWalletStore((s) => s.xp)
   const { data: achievements = [] } = useQuery({ queryKey: ['achievements'], queryFn: api.getAchievements })
   // The four most recent achievements this player has actually unlocked.
   const badges = achievements
@@ -113,7 +113,7 @@ export default function Profile() {
                 Rank <span className="text-[var(--color-accent)]">#{user.rank}</span>
               </span>
             </div>
-            <XPBar xp={lifetimeXp} xpToNextLevel={user.xpToNextLevel} className="max-w-lg" />
+            <XPBar xp={totalXp} xpToNextLevel={user.xpToNextLevel} className="max-w-lg" />
 
             <div>
               <p className="mb-2 font-pixel text-xs uppercase tracking-wider text-[var(--color-text-muted)]">Latest badges</p>

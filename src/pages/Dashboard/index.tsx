@@ -20,7 +20,7 @@ import { PathSprite } from '@/components/learning/PathCard'
 
 export default function Dashboard() {
   const { data: user } = useQuery({ queryKey: ['current-user'], queryFn: api.getCurrentUser })
-  const lifetimeXp = useWalletStore((s) => s.lifetimeXp)
+  const totalXp = useWalletStore((s) => s.xp)
   const { data: quest } = useQuery({ queryKey: ['daily-quest'], queryFn: api.getDailyQuest })
   const { data: courses } = useQuery({ queryKey: ['courses'], queryFn: api.getCourses })
   const { data: paths } = useQuery({ queryKey: ['paths'], queryFn: api.getPaths })
@@ -88,9 +88,9 @@ export default function Dashboard() {
               </p>
               <p className="font-pixel text-sm text-[var(--color-text-muted)]">Rank #{user.rank} global</p>
             </div>
-            <XPBar xp={lifetimeXp} xpToNextLevel={user.xpToNextLevel} />
+            <XPBar xp={totalXp} xpToNextLevel={user.xpToNextLevel} />
             <p className="text-xs text-[var(--color-text-secondary)]">
-              <span className="font-pixel text-[var(--color-accent)]">{Math.max(0, user.xpToNextLevel - lifetimeXp).toLocaleString()} XP</span> to Level{' '}
+              <span className="font-pixel text-[var(--color-accent)]">{Math.max(0, user.xpToNextLevel - totalXp).toLocaleString()} XP</span> to Level{' '}
               {user.level + 1}.
             </p>
           </CardContent>
