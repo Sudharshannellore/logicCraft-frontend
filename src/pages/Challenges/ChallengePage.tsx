@@ -18,7 +18,7 @@ import { ExerciseWorkspace } from '@/components/practice/ExerciseWorkspace'
 import type { ChallengeSubmitResult, LiveChallenge } from '@/types'
 import { cn } from '@/utils/cn'
 import { FastestBoard, StatusBadge } from './shared'
-import { KIND_META, bossSprite, formatCountdown, secondsLeft, useNow } from './utils'
+import { KIND_META, bossSprite, formatCountdown, preferredLanguage, rememberLanguage, secondsLeft, useNow } from './utils'
 
 interface Victory {
   bonusXp: number
@@ -29,18 +29,52 @@ interface Victory {
 /** The challenge (or zone boss) this route points at, and the calls that act on it. */
 function useChallengeRoute() {
   const { challengeId, courseId, bossId } = useParams()
+  const [params, setParams] = useSearchParams()
   const zone = courseId && bossId ? { courseId, bossId } : null
   const id = challengeId ?? ''
-  const queryKey = useMemo(() => (courseId && bossId ? ['zone-boss', courseId, bossId] : ['challenge', id]), [courseId, bossId, id])
+  // Daily, Speed and Boss challenges are the same in every language: the language is only how you solve them.
+  const language = params.get('lang') ?? preferredLanguage()
+  const queryKey = useMemo(
+    () => (courseId && bossId ? ['zone-boss', courseId, bossId] : ['challenge', id, language]),
+    [courseId, bossId, id, language],
+  )
   return {
     queryKey,
     zone,
+    language,
+    setLanguage: (next: string) => {
+      rememberLanguage(next)
+      setParams((p) => new URLSearchParams({ ...Object.fromEntries(p), lang: next }), { replace: true })
+    },
     backHref: zone ? `/learn/${zone.courseId}` : null,
-    load: () => (zone ? api.getZoneBoss(zone.courseId, zone.bossId) : api.getChallenge(id)),
-    start: () => (zone ? api.startZoneBoss(zone.courseId, zone.bossId) : api.startChallenge(id)),
+    load: () => (zone ? api.getZoneBoss(zone.courseId, zone.bossId) : api.getChallenge(id, language)),
+    start: () => (zone ? api.startZoneBoss(zone.courseId, zone.bossId) : api.startChallenge(id, language)),
     submit: (slug: string, files: Record<string, string>) =>
-      zone ? api.submitZoneBoss(zone.courseId, zone.bossId, slug, files) : api.submitChallenge(id, slug, files),
+      zone ? api.submitZoneBoss(zone.courseId, zone.bossId, slug, files) : api.submitChallenge(id, slug, files, language),
   }
+}
+
+/** Picks the language to solve the (language-independent) challenge in. Languages graded only on Exercism are marked. */
+function LanguageSelect({ value, onChange, className }: { value: string; onChange: (language: string) => void; className?: string }) {
+  const { data: languages } = useQuery({ queryKey: ['library', 'languages'], queryFn: api.getLibraryLanguages, staleTime: 10 * 60_000 })
+  if (!languages) return null
+  return (
+    <select
+      aria-label="Language"
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      className={cn('border-2 border-[var(--color-border-strong)] bg-[var(--color-surface)] px-2 py-1 font-pixel text-sm text-[var(--color-text-primary)]', className)}
+    >
+      {languages
+        .filter((lang) => lang.id !== 'sql')
+        .map((lang) => (
+          <option key={lang.id} value={lang.id}>
+            {lang.name}
+            {lang.gradable ? '' : ' (Exercism)'}
+          </option>
+        ))}
+    </select>
+  )
 }
 
 function StageList({ challenge }: { challenge: LiveChallenge }) {
@@ -100,6 +134,7 @@ function Lobby({ challenge, onPlay, backHref }: { challenge: LiveChallenge; onPl
   const left = secondsLeft(challenge, now)
   const { status } = challenge.me
   const cleared = challenge.stages.filter((s) => s.cleared).length
+
 
   const start = async () => {
     setBusy(true)
@@ -186,6 +221,13 @@ function Lobby({ challenge, onPlay, backHref }: { challenge: LiveChallenge; onPl
       <Link to={backHref} className="mb-4 inline-flex items-center gap-1.5 text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-accent)]">
         <ArrowLeft className="h-4 w-4" /> {challenge.kind === 'zone' ? 'Back to the map' : 'All challenges'}
       </Link>
+
+      {!route.zone && (
+        <label className="mb-4 flex flex-wrap items-center gap-2 text-sm text-[var(--color-text-secondary)]">
+          Solve it in
+          <LanguageSelect value={challenge.language} onChange={route.setLanguage} />
+        </label>
+      )}
 
       {isBoss ? (
         <BossArena
@@ -328,6 +370,7 @@ function Play({ challenge, onExit, onWon }: { challenge: LiveChallenge; onExit: 
 
   const clock = (
     <div className="flex items-center gap-2">
+      {!route.zone && <LanguageSelect value={challenge.language} onChange={route.setLanguage} />}
       {notice && (
         <span role="status" className="border-2 border-[var(--color-success)]/50 bg-[var(--color-success)]/15 px-2 py-1 font-pixel text-xs text-[var(--color-success)]">
           {notice}
@@ -353,7 +396,7 @@ function Play({ challenge, onExit, onWon }: { challenge: LiveChallenge; onExit: 
 
   return (
     <ExerciseWorkspace
-      key={stage.slug}
+      key={`${challenge.language}:${stage.slug}`}
       exercise={exercise}
       backHref={onExit}
       backLabel="Back to the challenge"
@@ -385,16 +428,16 @@ export default function ChallengePage() {
     )
   }
 
-  const backHref = route.backHref ?? `/challenges?lang=${challenge.language}`
+  const backHref = route.backHref ?? '/challenges'
   const playing = params.get('play') === '1' && challenge.me.status === 'in_progress' && challenge.gradable
-  const lobbyHref = window.location.pathname
+  const lobbyHref = route.zone ? window.location.pathname : `${window.location.pathname}?lang=${route.language}`
 
   return (
     <>
       {playing ? (
         <Play challenge={challenge} onExit={lobbyHref} onWon={setVictory} />
       ) : (
-        <Lobby challenge={challenge} backHref={backHref} onPlay={() => setParams({ play: '1' })} />
+        <Lobby challenge={challenge} backHref={backHref} onPlay={() => setParams((p) => new URLSearchParams({ ...Object.fromEntries(p), play: '1' }))} />
       )}
       <VictoryOverlay
         open={victory !== null}
@@ -405,7 +448,7 @@ export default function ChallengePage() {
         onClose={() => {
           setVictory(null)
           if (challenge.kind === 'zone' && route.backHref) navigate(route.backHref)
-          else setParams({})
+          else setParams((p) => new URLSearchParams({ lang: p.get('lang') ?? route.language }))
         }}
       />
     </>

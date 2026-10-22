@@ -149,10 +149,11 @@ export const api = {
 
   // --- Challenges, quests, achievements ----------------------------------------------------------------
   getChallenges: (language: string) => http.get<LiveChallenge[]>(`/challenges${query({ language })}`),
-  getChallenge: (id: string) => http.get<LiveChallenge>(`/challenges/${encodeURIComponent(id)}`),
-  startChallenge: (id: string) => http.post<LiveChallenge>(`/challenges/${encodeURIComponent(id)}/start`),
-  submitChallenge: (id: string, slug: string, files: Record<string, string>) =>
-    http.post<ChallengeSubmitResult>(`/challenges/${encodeURIComponent(id)}/submit`, { slug, files }),
+  // A challenge is the same in every language; `language` only picks how its exercises are shown and graded.
+  getChallenge: (id: string, language: string) => http.get<LiveChallenge>(`/challenges/${encodeURIComponent(id)}${query({ language })}`),
+  startChallenge: (id: string, language: string) => http.post<LiveChallenge>(`/challenges/${encodeURIComponent(id)}/start${query({ language })}`),
+  submitChallenge: (id: string, slug: string, files: Record<string, string>, language: string) =>
+    http.post<ChallengeSubmitResult>(`/challenges/${encodeURIComponent(id)}/submit`, { slug, files, language }),
   getZoneBoss: (courseId: string, bossId: string) => http.get<LiveChallenge>(zoneBossPath(courseId, bossId)),
   startZoneBoss: (courseId: string, bossId: string) => http.post<LiveChallenge>(`${zoneBossPath(courseId, bossId)}/start`),
   submitZoneBoss: (courseId: string, bossId: string, slug: string, files: Record<string, string>) =>

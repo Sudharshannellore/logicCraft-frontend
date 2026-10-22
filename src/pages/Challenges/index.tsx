@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { Clock, ExternalLink, RefreshCw, Users } from 'lucide-react'
@@ -6,9 +7,7 @@ import { errorMessage } from '@/services/api/client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Badge, difficultyVariant } from '@/components/ui/Badge'
 import { Button, buttonVariants } from '@/components/ui/Button'
-import { PageLoader } from '@/components/layout/PageLoader'
 import { PixelSprite } from '@/components/pixel/PixelSprite'
-import { LanguagePicker } from '@/components/learning/LanguagePicker'
 import { FrameworkPicker } from '@/components/learning/FrameworkPicker'
 import { ModeTabs, type Mode } from '@/components/learning/ModeTabs'
 import { FrameworkChallenges } from './FrameworkChallenges'
@@ -16,7 +15,7 @@ import { FriendDuels } from '@/components/duels/FriendDuels'
 import type { LiveChallenge } from '@/types'
 import { cn } from '@/utils/cn'
 import { FastestBoard, StatusBadge } from './shared'
-import { KIND_META, bossSprite, challengeHref, formatCountdown, secondsLeft, useNow } from './utils'
+import { KIND_META, bossSprite, challengeHref, formatCountdown, preferredLanguage, secondsLeft, useNow } from './utils'
 
 function actionLabel(challenge: LiveChallenge, now: number) {
   if (!challenge.gradable) return 'View on Exercism'
@@ -165,12 +164,9 @@ function Board({ language }: { language: string }) {
 }
 
 export default function Challenges() {
-  const { data: languages } = useQuery({ queryKey: ['library', 'languages'], queryFn: api.getLibraryLanguages, staleTime: 10 * 60_000 })
   const [params, setParams] = useSearchParams()
-  const selected = params.get('lang') ?? 'python'
+  const [language] = useState(preferredLanguage)
   const mode: Mode = params.get('mode') === 'frameworks' ? 'frameworks' : 'languages'
-
-  if (!languages) return <PageLoader />
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
@@ -184,7 +180,7 @@ export default function Challenges() {
           <a href="https://exercism.org" target="_blank" rel="noopener noreferrer" className="text-[var(--color-accent)] hover:underline">
             Exercism
           </a>
-          's open-source tracks. Every player gets the same picks; a new Daily and Speed challenge starts at 00:00 UTC and a new boss every Monday.
+          's open-source tracks. Open a challenge to pick the language you want to solve it in. Every player gets the same picks; a new Daily and Speed challenge starts at 00:00 UTC and a new boss every Monday.
         </p>
       </div>
 
@@ -197,10 +193,7 @@ export default function Challenges() {
           {(framework) => <FrameworkChallenges key={framework.courseId} framework={framework} />}
         </FrameworkPicker>
       ) : (
-        <>
-          <LanguagePicker languages={languages} value={selected} onChange={(id) => setParams({ lang: id }, { replace: true })} />
-          <Board key={selected} language={selected} />
-        </>
+        <Board language={language} />
       )}
     </div>
   )

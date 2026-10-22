@@ -43,3 +43,23 @@ export function secondsLeft(challenge: LiveChallenge, now: number) {
   if (challenge.me.status !== 'in_progress' || challenge.me.deadline == null) return null
   return Math.max(0, Math.ceil((challenge.me.deadline - now) / 1000))
 }
+
+const LANGUAGE_KEY = 'logicraft-challenge-language'
+const DEFAULT_LANGUAGE = 'python'
+
+/** The language the player last chose for challenges. Every challenge is the same in all languages; this is how it's shown. */
+export function preferredLanguage(): string {
+  try {
+    return window.localStorage.getItem(LANGUAGE_KEY) || DEFAULT_LANGUAGE
+  } catch {
+    return DEFAULT_LANGUAGE
+  }
+}
+
+export function rememberLanguage(language: string) {
+  try {
+    window.localStorage.setItem(LANGUAGE_KEY, language)
+  } catch {
+    // Storage unavailable — the choice just isn't remembered.
+  }
+}

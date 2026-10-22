@@ -118,7 +118,7 @@ function CheckoutDialog({ item, onClose }: { item: CheckoutItem; onClose: () => 
             </div>
             <p className="mt-4 flex items-start gap-2 border-2 border-[var(--color-info)]/40 bg-[var(--color-info)]/10 p-3 text-xs leading-relaxed text-[var(--color-text-secondary)]">
               <Info className="mt-0.5 h-4 w-4 shrink-0 text-[var(--color-info)]" />
-              Demo checkout — payments aren't connected yet, so no money is charged. Confirming adds the XP so you can try it out.
+              Payments aren't connected yet, so purchases are paused. You can still earn XP by learning, practising and finishing quests.
             </p>
             {error && (
               <p role="alert" className="mt-3 text-sm text-[var(--color-error)]">
