@@ -77,7 +77,7 @@ function LeaderboardRow({ entry }: { entry: LeaderboardEntry }) {
 
 export default function Leaderboard() {
   const [tab, setTab] = useState<Tab>('global')
-  const { data: rows, isLoading } = useQuery({ queryKey: ['leaderboard', tab], queryFn: () => api.getLeaderboard(tab) })
+  const { data: rows, isLoading } = useQuery({ queryKey: ['leaderboard', tab], queryFn: () => api.getLeaderboard(tab), staleTime: 10_000, refetchInterval: 30_000 })
 
   if (isLoading || !rows) return <PageLoader />
 

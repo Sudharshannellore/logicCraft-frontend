@@ -24,7 +24,7 @@ export default function Dashboard() {
   const { data: quest } = useQuery({ queryKey: ['daily-quest'], queryFn: api.getDailyQuest })
   const { data: courses } = useQuery({ queryKey: ['courses'], queryFn: api.getCourses })
   const { data: paths } = useQuery({ queryKey: ['paths'], queryFn: api.getPaths })
-  const { data: leaderboard } = useQuery({ queryKey: ['leaderboard', 'global'], queryFn: () => api.getLeaderboard('global') })
+  const { data: leaderboard } = useQuery({ queryKey: ['leaderboard', 'global'], queryFn: () => api.getLeaderboard('global'), staleTime: 10_000, refetchInterval: 30_000 })
 
   const activeCourse = courses ? pickActiveCourse(courses) : undefined
   const { data: activePath } = useQuery({

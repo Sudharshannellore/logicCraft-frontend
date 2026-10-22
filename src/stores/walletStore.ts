@@ -27,7 +27,8 @@ export const useWalletStore = create<WalletState>((set, get) => ({
 
   load: async () => {
     const wallet = await api.getWallet()
-    set({ xp: wallet.xp, lifetimeXp: wallet.lifetimeXp, claimedMilestones: wallet.claimedMilestones, loaded: true })
+    get().setBalance(wallet) // also refreshes level, rank and leaderboards when earned XP changed
+    set({ claimedMilestones: wallet.claimedMilestones, loaded: true })
   },
 
   setBalance: (balance) => {

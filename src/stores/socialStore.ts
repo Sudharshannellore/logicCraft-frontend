@@ -15,6 +15,8 @@ export const DUEL_WIN_BONUS = 40
 export const DUEL_STAKES = [0, 25, 50, 100] as const
 export const DUEL_TIME_LIMITS = [10, 20, 30] as const
 const POLL_MS = 3000
+/** Duel states that end a duel, and so may have paid out or refunded XP. */
+const ENDED: ReadonlySet<DuelStatus> = new Set(['won', 'lost', 'draw', 'declined', 'cancelled'])
 
 export type { AddFriendResult, DuelStatus }
 
@@ -104,6 +106,7 @@ export const useSocialStore = create<SocialState>((set, get) => ({
       api.getDuels(),
       get().directory.length ? Promise.resolve(null) : api.getPlayers(50),
     ])
+    const before = new Map(get().duels.map((d) => [d.id, d.status]))
     let players = get().players
     if (directory) for (const p of directory) players = { ...players, [p.id]: p }
     const fromSocial = fromOverview(overview, withDuelPlayers(duels, players))
@@ -113,6 +116,11 @@ export const useSocialStore = create<SocialState>((set, get) => ({
       directory: directory ? directory.map((p) => p.id).filter((id) => id !== overview.myId) : get().directory,
       loaded: true,
     })
+    // The server settles a duel when it's read, so winnings and refunds reach the wallet without any response
+    // carrying the new balance: fetch it when a duel has just ended.
+    if (duels.some((d) => before.has(d.id) && before.get(d.id) !== d.status && ENDED.has(d.status))) {
+      void useWalletStore.getState().load().catch(() => undefined)
+    }
   },
 
   sendFriendRequest: async (rawId) => {
